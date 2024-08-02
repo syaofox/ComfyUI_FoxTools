@@ -415,15 +415,85 @@ class FaceBlurBord:
         return (blurred_image, )
     
 
+class FaceAlign:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "analysis_models": ("ANALYSIS_MODELS", ),
+                "image_from": ("IMAGE", ),
+            }, "optional": {
+                "image_to": ("IMAGE", ),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "FLOAT","FLOAT")
+    RETURN_NAMES = ("image", "rotate", "unrotate")
+    FUNCTION = "align"
+    CATEGORY = "FoxTools"
+
+    def align(self, analysis_models, image_from, image_to=None):
+        image_from = tensor_to_image(image_from[0])
+        shape = analysis_models.get_keypoints(image_from)
+        
+        l_eye_from = shape[0]
+        r_eye_from = shape[1]
+        angle = float(np.degrees(np.arctan2(l_eye_from[1] - r_eye_from[1], l_eye_from[0] - r_eye_from[0])))
+
+        if image_to is not None:
+            image_to = tensor_to_image(image_to[0])
+            shape = analysis_models.get_keypoints(image_to)
+            l_eye_to = shape[0]
+            r_eye_to = shape[1]
+            angle -= float(np.degrees(np.arctan2(l_eye_to[1] - r_eye_to[1], l_eye_to[0] - r_eye_to[0])))
+
+        # rotate the image
+        image_from = Image.fromarray(image_from).rotate(angle)
+        image_from = image_to_tensor(image_from).unsqueeze(0)
+
+        #img = np.array(Image.fromarray(image_from).rotate(angle))
+        #img = image_to_tensor(img).unsqueeze(0)
+
+        print(angle)
+
+        return (image_from, angle, 360-angle)
+    
+
+class FaceRotate:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image_from": ("IMAGE", ),
+                "angle": ("FLOAT", { "default":0.1, "min": -14096, "max":14096, "step": 0.01 }),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("rotated_image",)
+    FUNCTION = "face_rotate"
+    CATEGORY = "FoxTools"
+
+    def face_rotate(self, image_from, angle):
+        image_from = tensor_to_image(image_from[0])
+       
+        image_from = Image.fromarray(image_from).rotate(angle)
+        image_from = image_to_tensor(image_from).unsqueeze(0)
+
+        return (image_from,)
 
 NODE_CLASS_MAPPINGS = {  
-    "SimpleFaceAlign": FaceAlignSimple,
-    "CaculFaceAlign": FaceAlignCacul,
-    "GenBlurBord": FaceBlurBord,
+    "Foxtools: SimpleFaceAlign": FaceAlignSimple,
+    "Foxtools: CaculFaceAlign": FaceAlignCacul,
+    "Foxtools: GenBlurBord": FaceBlurBord,
+    "Foxtools: FaceAlign": FaceAlign,
+    "Foxtools: FaceRotate": FaceRotate,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SimpleFaceAlign": "Simple FaceAlign",
-    "CaculFaceAlign": "Cacul FaceAlign",
-    "GenBlurBord": "Gen Blurbord",
+    "Foxtools: SimpleFaceAlign": "Foxtools: Simple FaceAlign",
+    "Foxtools: CaculFaceAlign": "Foxtools: Cacul FaceAlign",
+    "Foxtools: GenBlurBord": "Foxtools: Gen Blurbord",
+    "Foxtools: FaceAlign": "Foxtools: Face Align",
+    "Foxtools: FaceRotate": "Foxtools: Face Rotate",
 }
