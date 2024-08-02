@@ -14,7 +14,7 @@ def log(message:str, message_type:str='info'):
         message = '\033[1;32m' + message + '\033[m'
     else:
         message = '\033[1;33m' + message + '\033[m'
-    print(f"# 😺dzNodes: {name} -> {message}")
+    print(f"# FoxTools: {name} -> {message}")
 
 
 def generate_random_name(prefix:str, suffix:str, length:int) -> str:
