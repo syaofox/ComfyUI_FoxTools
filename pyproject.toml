@@ -1,0 +1,15 @@
+[project]
+name = "comfyui_foxtools"
+description = "Nodes:BatchImageFromList, Load Face Occlusion Model, Create Face Mask, Simple FaceAlign, Cacul FaceAlign, Gen Blurbord, Face Align, Face Rotate, ImageAdd, LoadImageList, SaveImage Plus, RegTextFind"
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["dlib", "onnxruntime", "insightface", "color_matcher"]
+
+[project.urls]
+Repository = "https://github.com/syaofox/ComfyUI_FoxTools"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI_FoxTools"
+Icon = ""
