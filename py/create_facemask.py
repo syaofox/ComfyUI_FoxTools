@@ -89,8 +89,8 @@ class CreateFaceMask:
             }
         }
 
-    RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("Mask",)
+    RETURN_TYPES = ("MASK","IMAGE",)
+    RETURN_NAMES = ("Mask", 'image')
     FUNCTION = "generate_mask"
     CATEGORY = "FoxTools"
 
@@ -99,7 +99,7 @@ class CreateFaceMask:
         image_np = np.array(input_image)
         occlusion_mask = face_occluder_model.create_occlusion_mask(image_np)
         image_to = torch.from_numpy(occlusion_mask).unsqueeze(0)
-        return (image_to, )
+        return (image_to, image_to, )
 
 NODE_CLASS_MAPPINGS = {
     "FoxTools: FaceOcclusionModelLoader": FaceOcclusionModelLoader,
