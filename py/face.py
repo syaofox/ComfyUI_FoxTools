@@ -282,17 +282,23 @@ class FaceAlignSimple:
             }
         }
 
-    RETURN_TYPES = ("IMAGE", "INT", )
+    RETURN_TYPES = ("IMAGE", "FLOAT", "FLOAT", )
+    RETURN_NAMES = ("image", "rotate", "unrotate",)
     FUNCTION = "align"
     CATEGORY = "FoxTools"
 
     def align(self, analysis_models, image_from, image_to=None):
-        def closest_angle(angle):
-        # List of target angles
-            target_angles = [0, 90, 180, 270, 360]
-            # Find the closest angle in the list
-            closest = min(target_angles, key=lambda x: abs(x - angle))
-            return closest
+        def find_closest_angle(angle):
+            # 定义接近的角度列表
+            angles = [-360, -270, -180, -90, 0, 90, 180, 270, 360]
+            
+            # 将角度标准化到0到360之间
+            normalized_angle = angle % 360
+            
+            # 计算与每个接近角度的差值，并找到最小差值的角度
+            closest_angle = min(angles, key=lambda x: min(abs(x - normalized_angle), abs(x - normalized_angle - 360), abs(x - normalized_angle + 360)))
+            
+            return closest_angle
 
         image_from = tensor_to_image(image_from[0])
         shape = analysis_models.get_keypoints(image_from)
@@ -300,6 +306,7 @@ class FaceAlignSimple:
         l_eye_from = shape[0]
         r_eye_from = shape[1]
         angle = float(np.degrees(np.arctan2(l_eye_from[1] - r_eye_from[1], l_eye_from[0] - r_eye_from[0])))
+       
 
         if image_to is not None:
             image_to = tensor_to_image(image_to[0])
@@ -308,14 +315,17 @@ class FaceAlignSimple:
             r_eye_to = shape[1]
             angle -= float(np.degrees(np.arctan2(l_eye_to[1] - r_eye_to[1], l_eye_to[0] - r_eye_to[0])))
 
+
+
+
         # Adjust angle to be the closest to 0, 90, 180, 270, 360
-        angle = closest_angle(angle)
+        angle = find_closest_angle(angle)
 
         # Rotate the image
         image_from = Image.fromarray(image_from).rotate(angle, expand=True)
         image_from = image_to_tensor(image_from).unsqueeze(0)
 
-        return (image_from, 360-angle)
+        return (image_from, angle, 360-angle)
     
 
 class FaceAlignCacul:
@@ -454,7 +464,7 @@ class FaceAlign:
         #img = np.array(Image.fromarray(image_from).rotate(angle))
         #img = image_to_tensor(img).unsqueeze(0)
 
-        print(angle)
+        # print(angle)
 
         return (image_from, angle, 360-angle)
     
@@ -466,6 +476,7 @@ class FaceRotate:
             "required": {
                 "image_from": ("IMAGE", ),
                 "angle": ("FLOAT", { "default":0.1, "min": -14096, "max":14096, "step": 0.01 }),
+                "expand": ("BOOLEAN", {"default": True}),
             },
         }
 
@@ -474,10 +485,10 @@ class FaceRotate:
     FUNCTION = "face_rotate"
     CATEGORY = "FoxTools"
 
-    def face_rotate(self, image_from, angle):
+    def face_rotate(self, image_from, angle,expand):
         image_from = tensor_to_image(image_from[0])
        
-        image_from = Image.fromarray(image_from).rotate(angle)
+        image_from = Image.fromarray(image_from).rotate(angle,expand=expand)
         image_from = image_to_tensor(image_from).unsqueeze(0)
 
         return (image_from,)
