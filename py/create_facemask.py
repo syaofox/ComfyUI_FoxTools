@@ -3,6 +3,7 @@ import numpy as np
 import onnxruntime
 import torch
 import torchvision.transforms.v2 as T
+import torch.nn.functional as F
 from PIL import Image
 from typing import Any, List
 from comfy.utils import ProgressBar
@@ -15,6 +16,28 @@ def image_to_tensor(image):
     return T.ToTensor()(image).permute(1, 2, 0)
 
 
+
+def expand_mask(mask, expand, tapered_corners):
+    import scipy
+
+    c = 0 if tapered_corners else 1
+    kernel = np.array([[c, 1, c],
+                       [1, 1, 1],
+                       [c, 1, c]])
+    device = mask.device
+    mask = mask.reshape((-1, mask.shape[-2], mask.shape[-1])).cpu()
+    out = []
+    for m in mask:
+        output = m.numpy()
+        for _ in range(abs(expand)):
+            if expand < 0:
+                output = scipy.ndimage.grey_erosion(output, footprint=kernel)
+            else:
+                output = scipy.ndimage.grey_dilation(output, footprint=kernel)
+        output = torch.from_numpy(output)
+        out.append(output)
+
+    return torch.stack(out, dim=0).to(device)
 
 
 
@@ -78,34 +101,6 @@ class FaceOcclusionModelLoader:
         return (model,)
 
 
-def tensor_to_cv2_image(tensor):
-    # 确保张量在CPU上
-    tensor = tensor.cpu()
-    
-    # 检查张量形状是否为 (C, H, W)
-    if tensor.dim() != 3 or tensor.size(0) != 3:
-        raise ValueError("Expected a 3D tensor with 3 channels (C, H, W)")
-
-    # 将张量转换为NumPy数组
-    numpy_array = tensor.numpy()
-    
-    # 检查NumPy数组的形状
-    if numpy_array.shape[0] != 3:
-        raise ValueError("Expected a NumPy array with shape (3, H, W)")
-
-    # 转换格式从 (C, H, W) 到 (H, W, C)
-    numpy_array = np.transpose(numpy_array, (1, 2, 0))
-
-    # 检查NumPy数组的类型和范围
-    if numpy_array.dtype != np.uint8:
-        numpy_array = (numpy_array * 255).astype(np.uint8)
-
-    # 将颜色通道从RGB转换为BGR
-    numpy_array = cv2.cvtColor(numpy_array, cv2.COLOR_RGB2BGR)
-    
-    return numpy_array
-
-
 class CreateFaceMask:
     @classmethod
     def INPUT_TYPES(cls):
@@ -113,15 +108,18 @@ class CreateFaceMask:
             "required": {
                 "face_occluder_model": ("FaceOcclusion_MODEL",),
                 "input_image": ("IMAGE",),
+                "grow": ("INT", { "default": 0, "min": -4096, "max": 4096, "step": 1 }),
+                "grow_tapered": ("BOOLEAN", { "default": False }),
+                "blur": ("INT", { "default": 1, "min": 1, "max": 4096, "step": 2 }),
             }
         }
 
-    RETURN_TYPES = ("IMAGE", "MASK", )
-    RETURN_NAMES = ("image", 'mask', )
+    RETURN_TYPES = ("MASK", "IMAGE", )
+    RETURN_NAMES = ("mask", "image", )
     FUNCTION = "generate_mask"
     CATEGORY = "FoxTools"
 
-    def generate_mask(self, face_occluder_model, input_image):
+    def generate_mask(self, face_occluder_model, input_image, grow, grow_tapered, blur):
 
         steps = input_image.shape[0]
 
@@ -130,6 +128,7 @@ class CreateFaceMask:
 
         out_mask = []
         out_image = []
+
 
         for img in input_image:
             face = tensor_to_image(img)
@@ -140,6 +139,7 @@ class CreateFaceMask:
                 mask = img.clone()[:,:,:1]
                 out_mask.append(mask)
                 out_image.append(img)
+
                 continue
 
             
@@ -154,10 +154,32 @@ class CreateFaceMask:
                 mask = img.clone()[:,:,:1]
                 out_mask.append(mask)
                 out_image.append(img)
+
                 continue
 
 
             mask = image_to_tensor(occlusion_mask).unsqueeze(0).squeeze(-1).clamp(0, 1).to(device=img.device)
+
+            # _, y, x = torch.where(mask)
+            # x1, x2 = x.min().item(), x.max().item()
+            # y1, y2 = y.min().item(), y.max().item()
+            # smooth = int(min(max((x2 - x1), (y2 - y1)) * 0.2, 99))
+
+            # if smooth > 1:
+            #     if smooth % 2 == 0:
+            #         smooth+= 1
+            #     mask = T.functional.gaussian_blur(mask.bool().unsqueeze(1), smooth).squeeze(1).float()
+            
+            if grow != 0:
+                mask = expand_mask(mask, grow, grow_tapered)
+
+            if blur > 1:
+                if blur % 2 == 0:
+                    blur+= 1
+                mask = T.functional.gaussian_blur(mask.unsqueeze(1), blur).squeeze(1).float()
+
+
+
             mask = mask.squeeze(0).unsqueeze(-1)
 
 
@@ -167,14 +189,22 @@ class CreateFaceMask:
             out_image.append(img)
 
             if steps > 1:
-                pbar.update(1)
+                pbar.update(1)       
+
 
         out_mask = torch.stack(out_mask).squeeze(-1)
         out_image = torch.stack(out_image)
     
 
+        # find the max size of out_seg_image
+
+
+
+
+
+
         
-        return (out_image,out_mask, )
+        return (out_mask, out_image, )
 
     
 
