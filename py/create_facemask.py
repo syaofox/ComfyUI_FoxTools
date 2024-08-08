@@ -5,6 +5,8 @@ import torch
 import torchvision.transforms.v2 as T
 from PIL import Image
 from typing import Any, List
+from comfy.utils import ProgressBar
+
 
 def tensor_to_image(image):
     return np.array(T.ToPILImage()(image.permute(2, 0, 1)).convert('RGB'))
@@ -115,24 +117,64 @@ class CreateFaceMask:
         }
 
     RETURN_TYPES = ("IMAGE", "MASK", )
-    RETURN_NAMES = ("iamge", 'mask', )
+    RETURN_NAMES = ("image", 'mask', )
     FUNCTION = "generate_mask"
     CATEGORY = "FoxTools"
 
     def generate_mask(self, face_occluder_model, input_image):
-        pil_image = tensor_to_image(input_image[0])
 
-        cv2_image = np.array(pil_image)
-        # 注意：PIL图像的RGB格式在转换为numpy数组后，需要转换为OpenCV的BGR格式
-        cv2_image = cv2.cvtColor(cv2_image, cv2.COLOR_RGB2BGR)
+        steps = input_image.shape[0]
+
+        if steps > 1:
+            pbar = ProgressBar(steps)
+
+        out_mask = []
+        out_image = []
+
+        for img in input_image:
+            face = tensor_to_image(img)
+
+            if face is None:
+                print(f"\033[96mNo face detected at frame {len(out_image)}\033[0m")
+                img = torch.zeros_like(img)
+                mask = img.clone()[:,:,:1]
+                out_mask.append(mask)
+                out_image.append(img)
+                continue
+
+            
+            pil_image = tensor_to_image(img)
+            cv2_image = np.array(pil_image)
+            cv2_image = cv2.cvtColor(cv2_image, cv2.COLOR_RGB2BGR)        
+            occlusion_mask = face_occluder_model.create_occlusion_mask(cv2_image)
+
+            if occlusion_mask is None:
+                print(f"\033[96mNo landmarks detected at frame {len(out_image)}\033[0m")
+                img = torch.zeros_like(img)
+                mask = img.clone()[:,:,:1]
+                out_mask.append(mask)
+                out_image.append(img)
+                continue
+
+
+            mask = image_to_tensor(occlusion_mask).unsqueeze(0).squeeze(-1).clamp(0, 1).to(device=img.device)
+            mask = mask.squeeze(0).unsqueeze(-1)
+
+
+       
+            img = img * mask.repeat(1, 1, 3)
+            out_mask.append(mask)
+            out_image.append(img)
+
+            if steps > 1:
+                pbar.update(1)
+
+        out_mask = torch.stack(out_mask).squeeze(-1)
+        out_image = torch.stack(out_image)
+    
+
         
-        occlusion_mask = face_occluder_model.create_occlusion_mask(cv2_image)
-
-        
-
-        image_to = torch.from_numpy(occlusion_mask).unsqueeze(0)
-        mask_to = image_to_tensor(occlusion_mask).unsqueeze(0).squeeze(-1).clamp(0, 1).to(device=input_image[0].device)
-        return (image_to, mask_to, )
+        return (out_image,out_mask, )
 
     
 
