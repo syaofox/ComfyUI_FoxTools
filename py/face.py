@@ -432,8 +432,10 @@ class FaceAlign:
             "required": {
                 "analysis_models": ("ANALYSIS_MODELS", ),
                 "image_from": ("IMAGE", ),
+                
             }, "optional": {
                 "image_to": ("IMAGE", ),
+                "expand": ("BOOLEAN", {"default": True}),
             }
         }
 
@@ -442,7 +444,7 @@ class FaceAlign:
     FUNCTION = "align"
     CATEGORY = "FoxTools"
 
-    def align(self, analysis_models, image_from, image_to=None):
+    def align(self, analysis_models, image_from, image_to=None, expand=True):
         image_from = tensor_to_image(image_from[0])
         shape = analysis_models.get_keypoints(image_from)
         
@@ -458,7 +460,7 @@ class FaceAlign:
             angle -= float(np.degrees(np.arctan2(l_eye_to[1] - r_eye_to[1], l_eye_to[0] - r_eye_to[0])))
 
         # rotate the image
-        image_from = Image.fromarray(image_from).rotate(angle)
+        image_from = Image.fromarray(image_from).rotate(angle,expand=expand)
         image_from = image_to_tensor(image_from).unsqueeze(0)
 
         #img = np.array(Image.fromarray(image_from).rotate(angle))

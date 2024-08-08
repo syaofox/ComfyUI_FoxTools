@@ -1,9 +1,6 @@
 import torch
 import numpy as np
-import os
-import re
-from PIL import Image
-from .utils import log  # 确保这个 utils 模块在你的代码路径中
+from PIL import Image, ImageOps, ImageFilter,ImageChops
 import torchvision.transforms.v2 as T
 
 def pil2tensor(image):
@@ -52,11 +49,117 @@ class ImageAdd:
         result_image = image_to_tensor(Image.fromarray(base_array)).unsqueeze(0)
 
         return (result_image, )
+    
+
+class CreateBlurBord:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {               
+                "width": ("INT",  { "default": 1024, "min": 0, "max": 14096, "step": 1 }),
+                "height": ("INT",  { "default": 1024, "min": 0, "max": 14096, "step": 1 }),
+                "board_percent": ("FLOAT",  { "default":0.1, "min": 0, "max":14096, "step": 0.01 }),
+                "blur_radius": ("INT",  { "default": 20.0, "min": 0, "max": 14096, "step": 1 }),
+            }, 
+        }
+
+    RETURN_TYPES = ("IMAGE","MASK", )
+    FUNCTION = "blurbord"
+    CATEGORY = "FoxTools"
+
+    def blurbord(self, width, height,board_percent, blur_radius):
+        print("blurbord",width,height)
+
+        # 创建白色图片
+        image = Image.new("RGB", (width, height), "white")        
+        # 计算边框粗细
+        border_thickness = int(min(width, height) * board_percent)        
+        # 添加黑色边框
+        image_with_border = ImageOps.expand(image, border=border_thickness, fill="black")        
+        # # 模糊边框
+        # blurred_image = image_with_border.filter(ImageFilter.GaussianBlur(radius=border_thickness))
+
+        blurred_image = image_with_border.filter(ImageFilter.GaussianBlur(radius=blur_radius)) 
+        tensor_blurred = image_to_tensor(blurred_image)
+        blurred_image = tensor_blurred.unsqueeze(0)
+        mask_tp = tensor_blurred.squeeze(1)
+        return (blurred_image, mask_tp, )
+    
+class TrimBlackBoard:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {               
+                "image1": ("IMAGE", ),
+                "threshold":  ("INT",  { "default": 10, "min": 0, "max": 14096, "step": 1 }),
+            }, 
+        }
+
+    RETURN_TYPES = ("IMAGE", )
+    FUNCTION = "func"
+    CATEGORY = "FoxTools"
+
+    def func(self, image1, threshold):
+
+        img = tensor_to_image(image1[0])
+        img = Image.fromarray(img)
+
+        width, height = img.size
+        
+        # 检测顶部黑边
+        top_offset = 0
+        for y in range(height):
+            for x in range(width):
+                if img.getpixel((x, y))[0] > threshold or img.getpixel((x, y))[1] > threshold or img.getpixel((x, y))[2] > threshold: # type: ignore
+                    top_offset = y
+                    break
+            if top_offset != 0:
+                break
+        
+        # 检测底部黑边
+        bottom_offset = 0
+        for y in range(height-1, -1, -1):
+            for x in range(width):
+                if img.getpixel((x, y))[0] > threshold or img.getpixel((x, y))[1] > threshold or img.getpixel((x, y))[2] > threshold: # type: ignore
+                    bottom_offset = y
+                    break
+            if bottom_offset != 0:
+                break
+        
+        # 检测左侧黑边
+        left_offset = 0
+        for x in range(width):
+            for y in range(height):
+                if img.getpixel((x, y))[0] > threshold or img.getpixel((x, y))[1] > threshold or img.getpixel((x, y))[2] > threshold: # type: ignore
+                    left_offset = x
+                    break
+            if left_offset != 0:
+                break
+        
+        # 检测右侧黑边
+        right_offset = 0
+        for x in range(width-1, -1, -1):
+            for y in range(height):
+                if img.getpixel((x, y))[0] > threshold or img.getpixel((x, y))[1] > threshold or img.getpixel((x, y))[2] > threshold: # type: ignore
+                    right_offset = x
+                    break
+            if right_offset != 0:
+                break
+        
+        # 裁剪图像，去除黑边
+        img = img.crop((left_offset, top_offset, right_offset + 1, bottom_offset + 1))
+        croped_image = image_to_tensor(img).unsqueeze(0)
+        return (croped_image, )
+    
 
 NODE_CLASS_MAPPINGS = {
-    "Foxtools: ImageAdd": ImageAdd
+    "Foxtools: ImageAdd": ImageAdd,
+    "Foxtools: CreateBlurBord": CreateBlurBord,
+    "Foxtools: TrimBlackBoard": TrimBlackBoard
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Foxtools: ImageAdd": "Foxtools: ImageAdd"
+    "Foxtools: ImageAdd": "Foxtools: ImageAdd",
+    "Foxtools: CreateBlurBord": "Foxtools: CreateBlurBord",
+    "Foxtools: TrimBlackBoard": "Foxtools: TrimBlackBoard",
 }
