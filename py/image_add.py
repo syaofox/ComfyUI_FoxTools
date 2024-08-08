@@ -153,14 +153,42 @@ class TrimBlackBoard:
         return (croped_image, )
     
 
+class ImageRotate:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "image_from": ("IMAGE", ),
+                "angle": ("FLOAT", { "default":0.1, "min": -14096, "max":14096, "step": 0.01 }),
+                "expand": ("BOOLEAN", {"default": True}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("rotated_image",)
+    FUNCTION = "face_rotate"
+    CATEGORY = "FoxTools"
+
+    def face_rotate(self, image_from, angle,expand):
+        image_from = tensor_to_image(image_from[0])
+       
+        image_from = Image.fromarray(image_from).rotate(angle,expand=expand)
+        image_from = image_to_tensor(image_from).unsqueeze(0)
+
+        return (image_from,)
+
+    
+
 NODE_CLASS_MAPPINGS = {
     "Foxtools: ImageAdd": ImageAdd,
     "Foxtools: CreateBlurBord": CreateBlurBord,
-    "Foxtools: TrimBlackBoard": TrimBlackBoard
+    "Foxtools: TrimBlackBoard": TrimBlackBoard,
+    "Foxtools: ImageRotate": ImageRotate,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Foxtools: ImageAdd": "Foxtools: ImageAdd",
     "Foxtools: CreateBlurBord": "Foxtools: CreateBlurBord",
     "Foxtools: TrimBlackBoard": "Foxtools: TrimBlackBoard",
+    "Foxtools: ImageRotate": "Foxtools: ImageRotate",
 }
