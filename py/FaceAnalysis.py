@@ -181,30 +181,16 @@ class InsightFace:
         return None
 
 class DLib:
-    def __init__(self, predictor=5):
-        self.face_detector = dlib.get_frontal_face_detector() # type: ignore
+    def __init__(self):
+        self.face_detector = dlib.get_frontal_face_detector()
         # check if the models are available
         if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat")):
             raise Exception("The 5 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_5_face_landmarks.dat")
-        if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat")):
-            raise Exception("The 5 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_68_face_landmarks.dat")
-        if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat")):
-            raise Exception("The 5 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_81_face_landmarks.dat")
         if not os.path.exists(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat")):
             raise Exception("The face recognition model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/dlib_face_recognition_resnet_model_v1.dat")
 
-        if predictor == 81:
-            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat")) # type: ignore
-        elif predictor == 5:
-            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat")) # type: ignore
-        else:
-            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat")) # type: ignore
-
-        self.predictor = predictor
-
-
-        # self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat"))
-        self.face_recognition = dlib.face_recognition_model_v1(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat")) # type: ignore
+        self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat"))
+        self.face_recognition = dlib.face_recognition_model_v1(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat"))
         self.thresholds = THRESHOLDS["Dlib"]
 
     def get_face(self, image):
@@ -230,18 +216,17 @@ class DLib:
         y = []
         w = []
         h = []
-        if faces is not None:
-            for face in faces:
-                x1 = max(0, face.left() - int(face.width() * padding_percent) - padding)
-                y1 = max(0, face.top() - int(face.height() * padding_percent) - padding)
-                x2 = min(image.width, face.right() + int(face.width() * padding_percent) + padding)
-                y2 = min(image.height, face.bottom() + int(face.height() * padding_percent) + padding)
-                crop = image.crop((x1, y1, x2, y2))
-                img.append(T.ToTensor()(crop).permute(1, 2, 0).unsqueeze(0))
-                x.append(x1)
-                y.append(y1)
-                w.append(x2 - x1)
-                h.append(y2 - y1)
+        for face in faces:
+            x1 = max(0, face.left() - int(face.width() * padding_percent) - padding)
+            y1 = max(0, face.top() - int(face.height() * padding_percent) - padding)
+            x2 = min(image.width, face.right() + int(face.width() * padding_percent) + padding)
+            y2 = min(image.height, face.bottom() + int(face.height() * padding_percent) + padding)
+            crop = image.crop((x1, y1, x2, y2))
+            img.append(T.ToTensor()(crop).permute(1, 2, 0).unsqueeze(0))
+            x.append(x1)
+            y.append(y1)
+            w.append(x2 - x1)
+            h.append(y2 - y1)
         return (img, x, y, w, h)
     
     def get_keypoints(self, image):
@@ -260,11 +245,11 @@ class DLib:
         if extended_landmarks:
             if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat")):
                 raise Exception("The 68 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_81_face_landmarks.dat")
-            predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat")) # type: ignore
+            predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat"))
         else:
             if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat")):
                 raise Exception("The 68 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_68_face_landmarks.dat")
-            predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat")) # type: ignore
+            predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat"))
 
         faces = self.get_face(image)
         if faces is not None:
@@ -286,139 +271,227 @@ class DLib:
 
             return [landmarks, main_features, eyes, left_eye, right_eye, nose, mouth, left_brow, right_brow, outline, outline_forehead]
         return None
-    
 
-            # 检测面部并提取关键点
-    def get_landmarks_shaker(self, image):
+class DLib_shaker:
+    def __init__(self, predictor=68):
+        self.face_detector = dlib.get_frontal_face_detector()
+        # check if the models are available
+        # check if the models are available
+        if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat")):
+            raise Exception("The 5 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_5_face_landmarks.dat")
+        if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat")):
+            raise Exception("The 5 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_68_face_landmarks.dat")
+        if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat")):
+            raise Exception("The 5 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_81_face_landmarks.dat")
+        if not os.path.exists(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat")):
+            raise Exception("The face recognition model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/dlib_face_recognition_resnet_model_v1.dat")
 
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        faces = self.face_detector(gray)
-        if len(faces) == 0:
-            return None
-        shape = self.shape_predictor(gray, faces[0])
-        landmarks = np.array([[p.x, p.y] for p in shape.parts()])
-        if self.predictor == 81:
-            landmarks = np.concatenate((landmarks[:17], landmarks[68:81]))
-            return landmarks
-        elif self.predictor == 5:
-            return landmarks
+        self.predictor=predictor
+        if predictor == 81:
+            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat"))
+        elif predictor == 5:
+            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat"))
         else:
-            return landmarks[:17]
+            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat"))
+
+        self.face_recognition = dlib.face_recognition_model_v1(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat"))
+        #self.thresholds = THRESHOLDS["Dlib"]
+
+    def get_face(self, image):
+        faces = self.face_detector(np.array(image), 1)
+        #faces, scores, _ = self.face_detector.run(np.array(image), 1, -1)
         
-    def get_all_landmarks(self, image):
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        faces = self.face_detector(gray)
-        if len(faces) == 0:
-            return None
-        shape = self.shape_predictor(gray, faces[0])
-        output = np.array([[p.x, p.y] for p in shape.parts()])
-        if self.predictor == 81:
-            leftEye=np.mean( output[36:42],axis=0)
-            rightEye=np.mean( output[42:48],axis=0)
-            mouth=np.mean( output[48:68],axis=0)
-        elif self.predictor == 5:
-            leftEye=np.mean( output[0:3],axis=0)
-            rightEye=np.mean( output[2:4],axis=0)
-            mouth=output[4]
-        else:
-            leftEye=np.mean( output[36:42],axis=0)
-            rightEye=np.mean( output[42:48],axis=0)
-            mouth=np.mean( output[48:68],axis=0)
+        if len(faces) > 0:
+            return sorted(faces, key=lambda x: x.area(), reverse=True)
+            #return [face for _, face in sorted(zip(scores, faces), key=lambda x: x[0], reverse=True)] # sort by score
+        return None
+            # 检测面部并提取关键点
+    def get_landmarks(self, image):
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                faces = self.face_detector(gray)
+                if len(faces) == 0:
+                    return None
+                shape = self.shape_predictor(gray, faces[0])
+                landmarks = np.array([[p.x, p.y] for p in shape.parts()])
+                if self.predictor == 81:
+                    landmarks = np.concatenate((landmarks[:17], landmarks[68:81]))
+                    return landmarks
+                elif self.predictor == 5:
+                    return landmarks
+                else:
+                    return landmarks[:17]
 
-        return output,leftEye,rightEye,mouth
+    def get_all_landmarks(self, image):
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                faces = self.face_detector(gray)
+                if len(faces) == 0:
+                    return None
+                shape = self.shape_predictor(gray, faces[0])
+                output = np.array([[p.x, p.y] for p in shape.parts()])
+                if self.predictor == 81:
+                    leftEye=np.mean( output[36:42],axis=0)
+                    rightEye=np.mean( output[42:48],axis=0)
+                    mouth=np.mean( output[48:68],axis=0)
+                elif self.predictor == 5:
+                    leftEye=np.mean( output[0:3],axis=0)
+                    rightEye=np.mean( output[2:4],axis=0)
+                    mouth=output[4]
+                else:
+                    leftEye=np.mean( output[36:42],axis=0)
+                    rightEye=np.mean( output[42:48],axis=0)
+                    mouth=np.mean( output[48:68],axis=0)
+
+                return output,leftEye,rightEye,mouth
                 
     def draw_landmarks(self, image, landmarks, color=(255, 0, 0), radius=3):
-        # cv2.circle打坐标点的坐标系，如下。左上角是原点，先写x再写y
-        #  (0,0)-------------(w,0)
-        #  |                  |
-        #  |                  |
-        #  (0,h)-------------(w,h)|
-        #font = cv2.FONT_HERSHEY_SIMPLEX
-        image_cpy = image.copy()
-        for n in range(landmarks.shape[0]):
+            # cv2.circle打坐标点的坐标系，如下。左上角是原点，先写x再写y
+            #  (0,0)-------------(w,0)
+            #  |                  |
+            #  |                  |
+            #  (0,h)-------------(w,h)|
+                #font = cv2.FONT_HERSHEY_SIMPLEX
+                image_cpy = image.copy()
+                for n in range(landmarks.shape[0]):
+                    try:
+                        cv2.circle(image_cpy, (int(landmarks[n][0]), int(landmarks[n][1])), radius, color, -1)
+                    except:
+                         pass
+                    #cv2.putText(image_cpy, str(n), (landmarks[n][1], landmarks[n][0]), font, 0.5, color, 1, cv2.LINE_AA)
+                return image_cpy
+    
+    def interpolate(self, image1, image2,landmarkType,AlignType,GenLandMarkImg):
+
+            height,width = image1.shape[:2]
+            w=width
+            h=height
+
             try:
-                cv2.circle(image_cpy, (int(landmarks[n][0]), int(landmarks[n][1])), radius, color, -1)
-            except:
-                    pass
-        return image_cpy
-
-    def interpolate(self, image1, image2, landmarkType, AlignType, GenLandMarkImg):
-        height, width = image1.shape[:2]
-
-        try:
-
-            # 提取特征点
-            if landmarkType == "ALL" or AlignType == "Landmarks":
-                landmarks1, leftEye1, rightEye1, mouth1 = self.get_all_landmarks(image1)  # type: ignore
-                landmarks2, leftEye2, rightEye2, mouth2 = self.get_all_landmarks(image2)  # type: ignore
-            else:
-                landmarks1 = self.get_landmarks(image1)
-                landmarks2 = self.get_landmarks(image2)
-        except TypeError:
+                if landmarkType == "ALL" or AlignType == "Landmarks":
+                    landmarks1,leftEye1,rightEye1,mouth1 = self.get_all_landmarks(image1)
+                    landmarks2,leftEye2,rightEye2,mouth2 = self.get_all_landmarks(image2)
+                else:
+                    landmarks1 = self.get_landmarks(image1)
+                    landmarks2 = self.get_landmarks(image2)              
+            except TypeError:
                 return image1, image1
 
-        # 初始化源和目标点
-        src_points = np.array([[x, y] for x in np.linspace(0, width, 16) for y in np.linspace(0, height, 16)])
-        src_points = src_points[(src_points[:, 0] <= width/8) | (src_points[:, 0] >= 7*width/8) | (src_points[:, 1] >= 7*height/8) | (src_points[:, 1] <= height/8)]
-        dst_points = src_points.copy()
-
-        # 添加特征点
-        dst_points = np.append(dst_points, landmarks1, axis=0)
-
-        # 计算边界框及比例
-        def compute_bbox_ratio(landmarks):
-            min_x, max_x = np.min(landmarks[:, 0]), np.max(landmarks[:, 0])
-            min_y, max_y = np.min(landmarks[:, 1]), np.max(landmarks[:, 1])
-            return (max_x - min_x) / (max_y - min_y), [(max_x + min_x) / 2, (max_y + min_y) / 2]
-
-        ratio1, middlePoint1 = compute_bbox_ratio(landmarks1)
-        ratio2, _ = compute_bbox_ratio(landmarks2)
-
-        # 对齐方式处理
-        landmarks1_cpy = landmarks1.copy()
-        if AlignType == "Width":
-            landmarks1_cpy[:, 1] = (landmarks1_cpy[:, 1] - middlePoint1[1]) * ratio1 / ratio2 + middlePoint1[1]
-        elif AlignType == "Height":
-            landmarks1_cpy[:, 0] = (landmarks1_cpy[:, 0] - middlePoint1[0]) * ratio2 / ratio1 + middlePoint1[0]
-        elif AlignType == "Landmarks":
-            MiddleOfEyes1 = (leftEye1 + rightEye1) / 2  # type: ignore
-            MiddleOfEyes2 = (leftEye2 + rightEye2) / 2  # type: ignore
-
-            distance1 = np.linalg.norm(leftEye1 - rightEye1)
-            distance2 = np.linalg.norm(leftEye2 - rightEye2)
-            factor = distance1 / distance2
-
-            landmarks1_cpy = (landmarks2 - MiddleOfEyes2) * factor + MiddleOfEyes1
-
-        # 更新src_points
-        src_points = np.append(src_points, landmarks1_cpy, axis=0)
-
-        # 映射
-        src_points[:, [0, 1]] = src_points[:, [1, 0]]
-        dst_points[:, [0, 1]] = dst_points[:, [1, 0]]
-
-        # 使用RBFInterpolator进行插值
-        rbfy = RBFInterpolator(src_points, dst_points[:, 1], kernel="thin_plate_spline")
-        rbfx = RBFInterpolator(src_points, dst_points[:, 0], kernel="thin_plate_spline")
-
-        # 创建网格并进行插值
-        img_grid = np.mgrid[0:height, 0:width]
-        flatten = img_grid.reshape(2, -1).T
-
-        map_y = rbfy(flatten).reshape(height, width).astype(np.float32)
-        map_x = rbfx(flatten).reshape(height, width).astype(np.float32)
-
-        # 应用重映射
-        warped_image = cv2.remap(image1, map_y, map_x, cv2.INTER_LINEAR)
-
-        # 生成标记图像
-        if GenLandMarkImg:
-            mark_img = self.draw_landmarks(image1, dst_points, color=(255, 255, 0), radius=4)
-            mark_img = self.draw_landmarks(mark_img, src_points, color=(255, 0, 0), radius=3)
-            return warped_image, mark_img
-        else:
-            return warped_image, warped_image
+            #画面划分成16*16个区域，然后去掉边界框以外的区域。
+            src_points = np.array([
+                [x, y]
+                for x in np.linspace(0, w, 16)
+                for y in np.linspace(0, h, 16)
+            ])
             
+            #上面这些区域同时被加入src和dst，使这些区域不被拉伸（效果是图片边缘不被拉伸）
+            src_points = src_points[(src_points[:, 0] <= w/8) | (src_points[:, 0] >= 7*w/8) |  (src_points[:, 1] >= 7*h/8)| (src_points[:, 1] <= h/8)]
+            #mark_img = self.draw_landmarks(mark_img, src_points, color=(255, 0, 255))
+            dst_points = src_points.copy()
+
+
+            #不知道原作者为何把这个数组叫dst，其实这是变形前的坐标，即原图的坐标
+            dst_points = np.append(dst_points,landmarks1,axis=0)
+
+            #变形目标人物的landmarks，先计算边界框
+            landmarks2=np.array(landmarks2)
+            min_x = np.min(landmarks2[:, 0])
+            max_x = np.max(landmarks2[:, 0])
+            min_y = np.min(landmarks2[:, 1])
+            max_y = np.max(landmarks2[:, 1])
+            #得到目标人物的边界框的长宽比
+            ratio2 = (max_x - min_x) / (max_y - min_y)
+
+            #变形原始人物的landmarks，边界框
+            landmarks1=np.array(landmarks1)
+            min_x = np.min(landmarks1[:, 0])
+            max_x = np.max(landmarks1[:, 0])
+            min_y = np.min(landmarks1[:, 1])
+            max_y = np.max(landmarks1[:, 1])
+            #得到原始人物的边界框的长宽比以及中心点
+            ratio1 = (max_x - min_x) / (max_y - min_y)
+            middlePoint = [ (max_x + min_x) / 2, (max_y + min_y) / 2]
+
+            landmarks1_cpy = landmarks1.copy()
+
+            if AlignType=="Width":
+            #保持人物脸部边界框中心点不变，垂直方向上缩放，使边界框的比例变得跟目标人物的边界框比例一致
+                landmarks1_cpy[:, 1] = (landmarks1_cpy[:, 1] - middlePoint[1]) * ratio1 / ratio2 + middlePoint[1]
+            elif AlignType=="Height":
+            #保持人物脸部边界框中心点不变，水平方向上缩放，使边界框的比例变得跟目标人物的边界框比例一致
+                landmarks1_cpy[:, 0] = (landmarks1_cpy[:, 0] - middlePoint[0]) * ratio2 / ratio1 + middlePoint[0]
+            elif AlignType=="Landmarks":
+                MiddleOfEyes1 = (leftEye1+rightEye1)/2
+                MiddleOfEyes2 = (leftEye2+rightEye2)/2
+
+                # angle = float(np.degrees(np.arctan2(leftEye2[1] - rightEye2[1], leftEye2[0] - rightEye2[0])))
+                # angle -= float(np.degrees(np.arctan2(leftEye1[1] - rightEye1[1], leftEye1[0] - rightEye1[0])))
+                # rotation_matrix = np.array([
+                #     [np.cos(angle), -np.sin(angle)],
+                #     [np.sin(angle), np.cos(angle)]
+                # ])
+
+                distance1 =  ((leftEye1[0] - rightEye1[0]) ** 2 + (leftEye1[1] - rightEye1[1]) ** 2) ** 0.5
+                distance2 =  ((leftEye2[0] - rightEye2[0]) ** 2 + (leftEye2[1] - rightEye2[1]) ** 2) ** 0.5
+                factor = distance1 / distance2
+                # print("distance1:",distance1)
+                # print("distance2:",distance2)
+                # print("factor:",factor)
+                # print("MiddleOfEyes1:",MiddleOfEyes1)
+                # print("MiddleOfEyes2:",MiddleOfEyes2)
+                # print("angle:",angle)
+                MiddleOfEyes2 = np.array(MiddleOfEyes2)
+                
+                landmarks1_cpy = (landmarks2 - MiddleOfEyes2) * factor + MiddleOfEyes1
+                
+                #landmarks1_cpy = landmarks1_cpy + MiddleOfEyes1
+
+                            # landmarks1_cpy = (landmarks2 - MiddleOfEyes2) * factor
+                            # landmarks1_cpy = landmarks1_cpy.T
+
+                            # # 旋转坐标
+                            # rotated_landmarks = np.dot(rotation_matrix, landmarks1_cpy)
+
+                            # # 将旋转后的坐标转换回行向量
+                            # rotated_landmarks = rotated_landmarks.T
+                            # # 将 MiddleOfEyes1 转换为二维数组
+                            # MiddleOfEyes1 = np.array(MiddleOfEyes1)
+
+                            # # 将 landmarks1_cpy 和 MiddleOfEyes1_expanded 相加
+                            # landmarks1_cpy = landmarks1_cpy + MiddleOfEyes1
+
+
+            #不知道原作者为何把这个数组叫src，其实这是变形后的坐标
+            src_points = np.append(src_points,landmarks1_cpy,axis=0)
+            #print(landmarks1_cpy)
+            
+            mark_img = self.draw_landmarks(image1, dst_points, color=(255, 255, 0),radius=4)
+            mark_img = self.draw_landmarks(mark_img, src_points, color=(255, 0, 0),radius=3)
+            
+            # Create the RBF interpolator instance            
+            #Tried many times, finally find out these array should be exchange w,h before go into RBFInterpolator            
+            src_points[:, [0, 1]] = src_points[:, [1, 0]]
+            dst_points[:, [0, 1]] = dst_points[:, [1, 0]]
+
+            rbfy = RBFInterpolator(src_points,dst_points[:,1],kernel="thin_plate_spline")
+            rbfx = RBFInterpolator(src_points,dst_points[:,0],kernel="thin_plate_spline")
+
+            # Create a meshgrid to interpolate over the entire image
+            img_grid = np.mgrid[0:height, 0:width]
+
+            # flatten grid so it could be feed into interpolation
+            flatten=img_grid.reshape(2, -1).T
+
+            # Interpolate the displacement using the RBF interpolators
+            map_y = rbfy(flatten).reshape(height,width).astype(np.float32)
+            map_x = rbfx(flatten).reshape(height,width).astype(np.float32)
+            # Apply the remapping to the image using OpenCV
+            warped_image = cv2.remap(image1, map_y, map_x, cv2.INTER_LINEAR)
+
+            if GenLandMarkImg:
+                return warped_image, mark_img
+            else:
+                return warped_image, warped_image
+
+
 class FaceAlignSimple:
     @classmethod
     def INPUT_TYPES(s):
