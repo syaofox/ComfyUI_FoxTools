@@ -342,103 +342,79 @@ class DLib:
                     pass
         return image_cpy
 
-    def interpolate(self, image1, image2,landmarkType,AlignType,GenLandMarkImg):
-
-        height,width = image1.shape[:2]
-        w=width
-        h=height
+    def interpolate(self, image1, image2, landmarkType, AlignType, GenLandMarkImg):
+        height, width = image1.shape[:2]
 
         try:
+
+            # 提取特征点
             if landmarkType == "ALL" or AlignType == "Landmarks":
-                landmarks1,leftEye1,rightEye1,mouth1 = self.get_all_landmarks(image1) # type: ignore
-                landmarks2,leftEye2,rightEye2,mouth2 = self.get_all_landmarks(image2) # type: ignore
+                landmarks1, leftEye1, rightEye1, mouth1 = self.get_all_landmarks(image1)  # type: ignore
+                landmarks2, leftEye2, rightEye2, mouth2 = self.get_all_landmarks(image2)  # type: ignore
             else:
                 landmarks1 = self.get_landmarks(image1)
-                landmarks2 = self.get_landmarks(image2)              
+                landmarks2 = self.get_landmarks(image2)
         except TypeError:
-            return image1, image1
+                return image1, image1
 
-        #画面划分成16*16个区域，然后去掉边界框以外的区域。
-        src_points = np.array([
-            [x, y]
-            for x in np.linspace(0, w, 16)
-            for y in np.linspace(0, h, 16)
-        ])
-        
-        #上面这些区域同时被加入src和dst，使这些区域不被拉伸（效果是图片边缘不被拉伸）
-        src_points = src_points[(src_points[:, 0] <= w/8) | (src_points[:, 0] >= 7*w/8) |  (src_points[:, 1] >= 7*h/8)| (src_points[:, 1] <= h/8)]
-        #mark_img = self.draw_landmarks(mark_img, src_points, color=(255, 0, 255))
+        # 初始化源和目标点
+        src_points = np.array([[x, y] for x in np.linspace(0, width, 16) for y in np.linspace(0, height, 16)])
+        src_points = src_points[(src_points[:, 0] <= width/8) | (src_points[:, 0] >= 7*width/8) | (src_points[:, 1] >= 7*height/8) | (src_points[:, 1] <= height/8)]
         dst_points = src_points.copy()
 
+        # 添加特征点
+        dst_points = np.append(dst_points, landmarks1, axis=0)
 
-        #不知道原作者为何把这个数组叫dst，其实这是变形前的坐标，即原图的坐标
-        dst_points = np.append(dst_points,landmarks1,axis=0) # type: ignore
+        # 计算边界框及比例
+        def compute_bbox_ratio(landmarks):
+            min_x, max_x = np.min(landmarks[:, 0]), np.max(landmarks[:, 0])
+            min_y, max_y = np.min(landmarks[:, 1]), np.max(landmarks[:, 1])
+            return (max_x - min_x) / (max_y - min_y), [(max_x + min_x) / 2, (max_y + min_y) / 2]
 
-        #变形目标人物的landmarks，先计算边界框
-        landmarks2=np.array(landmarks2)
-        min_x = np.min(landmarks2[:, 0])
-        max_x = np.max(landmarks2[:, 0])
-        min_y = np.min(landmarks2[:, 1])
-        max_y = np.max(landmarks2[:, 1])
-        #得到目标人物的边界框的长宽比
-        ratio2 = (max_x - min_x) / (max_y - min_y)
+        ratio1, middlePoint1 = compute_bbox_ratio(landmarks1)
+        ratio2, _ = compute_bbox_ratio(landmarks2)
 
-        #变形原始人物的landmarks，边界框
-        landmarks1=np.array(landmarks1)
-        min_x = np.min(landmarks1[:, 0])
-        max_x = np.max(landmarks1[:, 0])
-        min_y = np.min(landmarks1[:, 1])
-        max_y = np.max(landmarks1[:, 1])
-        #得到原始人物的边界框的长宽比以及中心点
-        ratio1 = (max_x - min_x) / (max_y - min_y)
-        middlePoint = [ (max_x + min_x) / 2, (max_y + min_y) / 2]
-
+        # 对齐方式处理
         landmarks1_cpy = landmarks1.copy()
+        if AlignType == "Width":
+            landmarks1_cpy[:, 1] = (landmarks1_cpy[:, 1] - middlePoint1[1]) * ratio1 / ratio2 + middlePoint1[1]
+        elif AlignType == "Height":
+            landmarks1_cpy[:, 0] = (landmarks1_cpy[:, 0] - middlePoint1[0]) * ratio2 / ratio1 + middlePoint1[0]
+        elif AlignType == "Landmarks":
+            MiddleOfEyes1 = (leftEye1 + rightEye1) / 2  # type: ignore
+            MiddleOfEyes2 = (leftEye2 + rightEye2) / 2  # type: ignore
 
-        if AlignType=="Width":
-        #保持人物脸部边界框中心点不变，垂直方向上缩放，使边界框的比例变得跟目标人物的边界框比例一致
-            landmarks1_cpy[:, 1] = (landmarks1_cpy[:, 1] - middlePoint[1]) * ratio1 / ratio2 + middlePoint[1]
-        elif AlignType=="Height":
-        #保持人物脸部边界框中心点不变，水平方向上缩放，使边界框的比例变得跟目标人物的边界框比例一致
-            landmarks1_cpy[:, 0] = (landmarks1_cpy[:, 0] - middlePoint[0]) * ratio2 / ratio1 + middlePoint[0]
-        elif AlignType=="Landmarks":
-            MiddleOfEyes1 = (leftEye1+rightEye1)/2 # type: ignore
-            MiddleOfEyes2 = (leftEye2+rightEye2)/2 # type: ignore
-
-            distance1 =  ((leftEye1[0] - rightEye1[0]) ** 2 + (leftEye1[1] - rightEye1[1]) ** 2) ** 0.5
-            distance2 =  ((leftEye2[0] - rightEye2[0]) ** 2 + (leftEye2[1] - rightEye2[1]) ** 2) ** 0.5
+            distance1 = np.linalg.norm(leftEye1 - rightEye1)
+            distance2 = np.linalg.norm(leftEye2 - rightEye2)
             factor = distance1 / distance2
 
-            MiddleOfEyes2 = np.array(MiddleOfEyes2)
-            
             landmarks1_cpy = (landmarks2 - MiddleOfEyes2) * factor + MiddleOfEyes1
 
-        #不知道原作者为何把这个数组叫src，其实这是变形后的坐标
-        src_points = np.append(src_points,landmarks1_cpy,axis=0)
+        # 更新src_points
+        src_points = np.append(src_points, landmarks1_cpy, axis=0)
 
-        mark_img = self.draw_landmarks(image1, dst_points, color=(255, 255, 0),radius=4)
-        mark_img = self.draw_landmarks(mark_img, src_points, color=(255, 0, 0),radius=3)
-        
-    
+        # 映射
         src_points[:, [0, 1]] = src_points[:, [1, 0]]
         dst_points[:, [0, 1]] = dst_points[:, [1, 0]]
 
-        rbfy = RBFInterpolator(src_points,dst_points[:,1],kernel="thin_plate_spline")
-        rbfx = RBFInterpolator(src_points,dst_points[:,0],kernel="thin_plate_spline")
+        # 使用RBFInterpolator进行插值
+        rbfy = RBFInterpolator(src_points, dst_points[:, 1], kernel="thin_plate_spline")
+        rbfx = RBFInterpolator(src_points, dst_points[:, 0], kernel="thin_plate_spline")
 
-        # Create a meshgrid to interpolate over the entire image
+        # 创建网格并进行插值
         img_grid = np.mgrid[0:height, 0:width]
+        flatten = img_grid.reshape(2, -1).T
 
-        # flatten grid so it could be feed into interpolation
-        flatten=img_grid.reshape(2, -1).T
+        map_y = rbfy(flatten).reshape(height, width).astype(np.float32)
+        map_x = rbfx(flatten).reshape(height, width).astype(np.float32)
 
-        # Interpolate the displacement using the RBF interpolators
-        map_y = rbfy(flatten).reshape(height,width).astype(np.float32)
-        map_x = rbfx(flatten).reshape(height,width).astype(np.float32)
-        # Apply the remapping to the image using OpenCV
+        # 应用重映射
         warped_image = cv2.remap(image1, map_y, map_x, cv2.INTER_LINEAR)
 
+        # 生成标记图像
         if GenLandMarkImg:
+            mark_img = self.draw_landmarks(image1, dst_points, color=(255, 255, 0), radius=4)
+            mark_img = self.draw_landmarks(mark_img, src_points, color=(255, 0, 0), radius=3)
             return warped_image, mark_img
         else:
             return warped_image, warped_image
@@ -577,8 +553,10 @@ class FaceAlign:
     CATEGORY = "FoxTools/FaceAnalysis"
 
     def align(self, analysis_models, image_from, image_to=None, expand=True):
-        image_from = tensor_to_image(image_from[0])
-        shape = analysis_models.get_keypoints(image_from)
+        _image_from = tensor_to_image(image_from[0])
+        shape = analysis_models.get_keypoints(_image_from)
+        if shape is None:
+            return (image_from, 0, 0)
         
         l_eye_from = shape[0]
         r_eye_from = shape[1]
@@ -592,15 +570,15 @@ class FaceAlign:
             angle -= float(np.degrees(np.arctan2(l_eye_to[1] - r_eye_to[1], l_eye_to[0] - r_eye_to[0])))
 
         # rotate the image
-        image_from = Image.fromarray(image_from).rotate(angle,expand=expand)
-        image_from = image_to_tensor(image_from).unsqueeze(0)
+        _image_from = Image.fromarray(_image_from).rotate(angle,expand=expand)
+        _image_from = image_to_tensor(_image_from).unsqueeze(0)
 
-        #img = np.array(Image.fromarray(image_from).rotate(angle))
+        #img = np.array(Image.fromarray(_image_from).rotate(angle))
         #img = image_to_tensor(img).unsqueeze(0)
 
         # print(angle)
 
-        return (image_from, angle, 360-angle)
+        return (_image_from, angle, 360-angle)
 
 class FaceAnalysisModels:
     @classmethod
@@ -633,21 +611,21 @@ class FaceAnalysisModels:
 class FaceShaperModels:
     @classmethod
     def INPUT_TYPES(s):
-        libraries = []
-        if IS_DLIB_INSTALLED:
-            libraries.append("dlib")
+        # libraries = []
+        # if IS_DLIB_INSTALLED:
+        #     libraries.append("dlib")
 
         return {"required": {
-            "detectType": ([81,68,5], ),
+            "DetectType": ([81,68,5], ),
         }}
 
     RETURN_TYPES = ("FaceShaper_MODELS", )
     FUNCTION = "load_models"
-    CATEGORY = "Pano"
+    CATEGORY = "FoxTools/FaceAnalysis"
 
-    def load_models(self, detectType):
+    def load_models(self, DetectType):
         out = {}
-        out = DLib(detectType)
+        out = DLib_shaker(DetectType)
         return (out, )
 
 class FaceEmbedDistance:
