@@ -4,7 +4,6 @@ import onnxruntime
 import torch
 import torchvision.transforms.v2 as T
 import torch.nn.functional as F
-from PIL import Image
 from typing import Any, List
 from comfy.utils import ProgressBar
 
@@ -194,15 +193,6 @@ class CreateFaceMask:
 
         out_mask = torch.stack(out_mask).squeeze(-1)
         out_image = torch.stack(out_image)
-    
-
-        # find the max size of out_seg_image
-
-
-
-
-
-
         
         return (out_mask, out_image, )
 

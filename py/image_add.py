@@ -82,8 +82,9 @@ class CreateBlurBord:
         blurred_image = image_with_border.filter(ImageFilter.GaussianBlur(radius=blur_radius)) 
         tensor_blurred = image_to_tensor(blurred_image)
         blurred_image = tensor_blurred.unsqueeze(0)
-        mask_tp = tensor_blurred.squeeze(1)
-        return (blurred_image, mask_tp, )
+
+        mask = blurred_image[:, :, :, 0]
+        return (blurred_image, mask, )
     
 class TrimBlackBoard:
     @classmethod

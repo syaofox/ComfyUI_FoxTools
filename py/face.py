@@ -46,60 +46,6 @@ def tensor_to_image(image):
 
 def image_to_tensor(image):
     return T.ToTensor()(image).permute(1, 2, 0)
-    #return T.ToTensor()(Image.fromarray(image)).permute(1, 2, 0)
-
-def expand_mask(mask, expand, tapered_corners):
-    import scipy
-
-    c = 0 if tapered_corners else 1
-    kernel = np.array([[c, 1, c],
-                       [1, 1, 1],
-                       [c, 1, c]])
-    device = mask.device
-    mask = mask.reshape((-1, mask.shape[-2], mask.shape[-1])).cpu()
-    out = []
-    for m in mask:
-        output = m.numpy()
-        for _ in range(abs(expand)):
-            if expand < 0:
-                output = scipy.ndimage.grey_erosion(output, footprint=kernel)
-            else:
-                output = scipy.ndimage.grey_dilation(output, footprint=kernel)
-        output = torch.from_numpy(output)
-        out.append(output)
-
-    return torch.stack(out, dim=0).to(device)
-
-def transformation_from_points(points1, points2):
-    points1 = points1.astype(np.float64)
-    points2 = points2.astype(np.float64)
-
-    c1 = np.mean(points1, axis=0)
-    c2 = np.mean(points2, axis=0)
-    points1 -= c1
-    points2 -= c2
-
-    s1 = np.std(points1)
-    s2 = np.std(points2)
-    points1 /= s1
-    points2 /= s2
-
-    U, S, Vt = np.linalg.svd(points1.T * points2)
-
-    R = (U * Vt).T
-
-    return np.vstack([np.hstack(((s2 / s1) * R, 
-                                 c2.T - (s2 / s1) * R * c1.T)),
-                                 np.matrix([0., 0., 1.])])
-
-def mask_from_landmarks(image, landmarks):
-    import cv2
-
-    mask = np.zeros(image.shape[:2], dtype=np.float64)
-    points = cv2.convexHull(landmarks)
-    cv2.fillConvexPoly(mask, points, color=1)
-
-    return mask
 
 class InsightFace:
     def __init__(self, provider="CPU", name="buffalo_l"):
@@ -384,47 +330,6 @@ class FaceAlignCacul:
 
         return (angle, 360-angle)
 
-
-class FaceBlurBord:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {               
-                "width": ("INT",  { "default": 1024, "min": 0, "max": 14096, "step": 1 }),
-                "height": ("INT",  { "default": 1024, "min": 0, "max": 14096, "step": 1 }),
-                "board_percent": ("FLOAT",  { "default":0.1, "min": 0, "max":14096, "step": 0.01 }),
-                "blur_radius": ("INT",  { "default": 20.0, "min": 0, "max": 14096, "step": 1 }),
-            }, 
-        }
-
-    RETURN_TYPES = ("IMAGE", )
-    FUNCTION = "blurbord"
-    CATEGORY = "FoxTools"
-
-    def blurbord(self, width, height,board_percent, blur_radius):
-        print("blurbord",width,height)
-
-        # 创建白色图片
-        image = Image.new("RGB", (width, height), "white")
-        
-        # 计算边框粗细
-        border_thickness = int(min(width, height) * board_percent)
-        
-        # 添加黑色边框
-        image_with_border = ImageOps.expand(image, border=border_thickness, fill="black")
-        
-        # # 模糊边框
-        # blurred_image = image_with_border.filter(ImageFilter.GaussianBlur(radius=border_thickness))
-
-        blurred_image = image_with_border.filter(ImageFilter.GaussianBlur(radius=blur_radius))
-    
-       
-        blurred_image = image_to_tensor(blurred_image).unsqueeze(0)
-
-
-        return (blurred_image, )
-    
-
 class FaceAlign:
     @classmethod
     def INPUT_TYPES(s):
@@ -498,7 +403,6 @@ class FaceRotate:
 NODE_CLASS_MAPPINGS = {  
     "Foxtools: SimpleFaceAlign": FaceAlignSimple,
     "Foxtools: CaculFaceAlign": FaceAlignCacul,
-    "Foxtools: GenBlurBord": FaceBlurBord,
     "Foxtools: FaceAlign": FaceAlign,
     "Foxtools: FaceRotate": FaceRotate,
 }
@@ -506,7 +410,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Foxtools: SimpleFaceAlign": "Foxtools: Simple FaceAlign",
     "Foxtools: CaculFaceAlign": "Foxtools: Cacul FaceAlign",
-    "Foxtools: GenBlurBord": "Foxtools: Gen Blurbord",
     "Foxtools: FaceAlign": "Foxtools: Face Align",
     "Foxtools: FaceRotate": "Foxtools: Face Rotate",
 }
