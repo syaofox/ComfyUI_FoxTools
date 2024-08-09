@@ -234,13 +234,13 @@ class PreviewMask(SaveImage):
         return self.save_images(img, 'temp_', None,  None)
 
 NODE_CLASS_MAPPINGS = {
-    "FoxTools: FaceOcclusionModelLoader": FaceOcclusionModelLoader,
-    "FoxTools: CreateFaceMask": CreateFaceMask,
-    "FoxTools: PreviewMask": PreviewMask
+    "FoxFaceOcclusionModelLoader": FaceOcclusionModelLoader,
+    "FoxCreateFaceMask": CreateFaceMask,
+    "FoxPreviewMask": PreviewMask
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "FoxTools: FaceOcclusionModelLoader": "FoxTools: FaceOcclusionModelLoader",
-    "FoxTools: CreateFaceMask": "FoxTools: CreateFaceMask",
-    "FoxTools: PreviewMask": "FoxTools: PreviewMask"
+    "FoxFaceOcclusionModelLoader": "FoxTools: FaceOcclusionModelLoader",
+    "FoxCreateFaceMask": "FoxTools: CreateFaceMask",
+    "FoxPreviewMask": "FoxTools: PreviewMask"
 }

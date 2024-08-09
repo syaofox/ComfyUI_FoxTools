@@ -74,13 +74,13 @@ class GenSwapPathText:
 
 
 NODE_CLASS_MAPPINGS = {
-    "Foxtools: RegTextFind": RegTextFind,
-    "Foxtools: GenSwapPathText": GenSwapPathText
+    "FoxRegTextFind": RegTextFind,
+    "FoxGenSwapPathText": GenSwapPathText
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Foxtools: RegTextFind": "Foxtools: RegTextFind",
-    "Foxtools: GenSwapPathText": "Foxtools: GenSwapPathText"
+    "FoxRegTextFind": "Foxtools: RegTextFind",
+    "FoxGenSwapPathText": "Foxtools: GenSwapPathText"
 }
 
 

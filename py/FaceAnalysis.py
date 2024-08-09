@@ -1182,28 +1182,28 @@ class FaceShaper:
         return (output)
 
 NODE_CLASS_MAPPINGS = {  
-    "Foxtools: FaceAnalysisModels": FaceAnalysisModels,
-    "Foxtools: FaceShaperModels": FaceShaperModels,
-    "Foxtools: FaceAlignSimple": FaceAlignSimple,
-    "Foxtools: CaculFaceAlign": FaceAlignCacul,
-    "Foxtools: FaceAlign": FaceAlign,
-    "Foxtools: FaceEmbedDistance": FaceEmbedDistance,
-    "Foxtools: FaceBoundingBox": FaceBoundingBox,
-    "Foxtools: FaceSegmentation": faceSegmentation,
-    "Foxtools: FaceWarp": FaceWarp,
-    "Foxtools: FaceShaper": FaceShaper,
+    "FoxFaceAnalysisModels": FaceAnalysisModels,
+    "FoxFaceShaperModels": FaceShaperModels,
+    "FoxFaceAlignSimple": FaceAlignSimple,
+    "FoxFaceAlignCacul": FaceAlignCacul,
+    "FoxFaceAlign": FaceAlign,
+    "FoxFaceEmbedDistance": FaceEmbedDistance,
+    "FoxFaceBoundingBox": FaceBoundingBox,
+    "FoxFaceSegmentation": faceSegmentation,
+    "FoxFaceWarp": FaceWarp,
+    "FoxFaceShaper": FaceShaper,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Foxtools: FaceAnalysisModels": "Foxtools: FaceAnalysisModels",
-    "Foxtools: FaceShaperModels":" Foxtools: FaceShaperModels",
-    "Foxtools: FaceAlignSimple": "Foxtools: FaceAlignSimple",
-    "Foxtools: FaceAlignCacul": "Foxtools: FaceAlignCacul",
-    "Foxtools: FaceAlign": "Foxtools: FaceAlign",
-    "Foxtools: FaceEmbedDistance": "Foxtools: FaceEmbedDistance",
-    "Foxtools: FaceBoundingBox": "Foxtools: FaceBoundingBox",
-    "Foxtools: FaceSegmentation": "Foxtools: FaceSegmentation",
-    "Foxtools: FaceWarp": "Foxtools: FaceWarp",
-    "Foxtools: FaceShaper": "Foxtools: FaceShaper",
+    "FoxFaceAnalysisModels": "Foxtools: FaceAnalysisModels",
+    "FoxFaceShaperModels":" Foxtools: FaceShaperModels",
+    "FoxFaceAlignSimple": "Foxtools: FaceAlignSimple",
+    "FoxFaceAlignCacul": "Foxtools: FaceAlignCacul",
+    "FoxFaceAlign": "Foxtools: FaceAlign",
+    "FoxFaceEmbedDistance": "Foxtools: FaceEmbedDistance",
+    "FoxFaceBoundingBox": "Foxtools: FaceBoundingBox",
+    "FoxFaceSegmentation": "Foxtools: FaceSegmentation",
+    "FoxFaceWarp": "Foxtools: FaceWarp",
+    "FoxFaceShaper": "Foxtools: FaceShaper",
     
 }

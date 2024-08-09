@@ -753,26 +753,26 @@ class LoadImageBatch:
 
       
 NODE_CLASS_MAPPINGS = {
-    "Foxtools: BatchImageFromList": MakeBatchFromImageList,
-    "Foxtools: ImageAdd": ImageAdd,
-    "Foxtools: CreateBlurBord": CreateBlurBord,
-    "Foxtools: TrimBlackBoard": TrimBlackBoard,
-    "Foxtools: ImageRotate": ImageRotate,
-    "Foxtools: LoadImageList": LoadImageList,
-    "Foxtools: SaveImagePlus": SaveImagePlus,
-    "Foxtools: ColorMatch": ColorMatch,
+    "FoxBatchImageFromList": MakeBatchFromImageList,
+    "FoxImageAdd": ImageAdd,
+    "FoxCreateBlurBord": CreateBlurBord,
+    "FoxTrimBlackBoard": TrimBlackBoard,
+    "FoxImageRotate": ImageRotate,
+    "FoxLoadImageList": LoadImageList,
+    "FoxSaveImagePlus": SaveImagePlus,
+    "FoxColorMatch": ColorMatch,
     "FoxLoadImageBatch": LoadImageBatch,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Foxtools: BatchImageFromList": "Foxtools: BatchImageFromList",
-    "Foxtools: ImageAdd": "Foxtools: ImageAdd",
-    "Foxtools: CreateBlurBord": "Foxtools: CreateBlurBord",
-    "Foxtools: TrimBlackBoard": "Foxtools: TrimBlackBoard",
-    "Foxtools: ImageRotate": "Foxtools: ImageRotate",
-    "Foxtools: LoadImageList": "Foxtools: LoadImageList",
-    "Foxtools: SaveImagePlus": "Foxtools: SaveImagePlus",
-    "Foxtools: ColorMatch": "Foxtools: ColorMatch",
+    "FoxBatchImageFromList": "Foxtools: Batch Image From List",
+    "FoxImageAdd": "Foxtools: Image Add",
+    "FoxCreateBlurBord": "Foxtools: Create BlurBord",
+    "FoxTrimBlackBoard": "Foxtools: Trim BlackBoard",
+    "FoxImageRotate": "Foxtools: Image Rotate",
+    "FoxLoadImageList": "Foxtools: Load ImageList",
+    "FoxSaveImagePlus": "Foxtools: Save ImagePlus",
+    "FoxColorMatch": "Foxtools: ColorMatch",
     "FoxLoadImageBatch": "Foxtools: Load Image Batch",
 }
 
