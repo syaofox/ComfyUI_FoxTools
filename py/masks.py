@@ -340,5 +340,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "FoxFaceOcclusionModelLoader": "FoxTools: FaceOcclusionModelLoader",
     "FoxCreateFaceMask": "FoxTools: CreateFaceMask",
+    "FoxPreviewMask": "FoxTools: PreviewMask",
     "FoxGrowMaskWithBlur": "FoxTools: Grow Mask With Blur"
 }

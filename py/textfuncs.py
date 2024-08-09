@@ -146,9 +146,10 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "FoxRegTextFind": "Foxtools: RegTextFind",
-    "FoxShowText": "Foxtools: ShowText",
-    "FoxPrimitiveText": "Foxtools: Primitive Text",
+    "FoxRegTextFind": "FoxTools: RegTextFind",
+    "FoxGenSwapPathText": "FoxTools: GenSwapPathText",
+    "FoxShowText": "FoxTools: ShowText",
+    "FoxPrimitiveText": "FoxTools: Primitive Text",
 }
 
 

@@ -1195,15 +1195,15 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "FoxFaceAnalysisModels": "Foxtools: FaceAnalysisModels",
+    "FoxFaceAnalysisModels": "FoxTools: FaceAnalysisModels",
     "FoxFaceShaperModels":" Foxtools: FaceShaperModels",
-    "FoxFaceAlignSimple": "Foxtools: FaceAlignSimple",
-    "FoxFaceAlignCacul": "Foxtools: FaceAlignCacul",
-    "FoxFaceAlign": "Foxtools: FaceAlign",
-    "FoxFaceEmbedDistance": "Foxtools: FaceEmbedDistance",
-    "FoxFaceBoundingBox": "Foxtools: FaceBoundingBox",
-    "FoxFaceSegmentation": "Foxtools: FaceSegmentation",
-    "FoxFaceWarp": "Foxtools: FaceWarp",
-    "FoxFaceShaper": "Foxtools: FaceShaper",
+    "FoxFaceAlignSimple": "FoxTools: FaceAlignSimple",
+    "FoxFaceAlignCacul": "FoxTools: FaceAlignCacul",
+    "FoxFaceAlign": "FoxTools: FaceAlign",
+    "FoxFaceEmbedDistance": "FoxTools: FaceEmbedDistance",
+    "FoxFaceBoundingBox": "FoxTools: FaceBoundingBox",
+    "FoxFaceSegmentation": "FoxTools: FaceSegmentation",
+    "FoxFaceWarp": "FoxTools: FaceWarp",
+    "FoxFaceShaper": "FoxTools: FaceShaper",
     
 }

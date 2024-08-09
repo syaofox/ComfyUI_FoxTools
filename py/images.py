@@ -1002,19 +1002,19 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "FoxBatchImageFromList": "Foxtools: Batch Image From List",
-    "FoxImageAdd": "Foxtools: Image Add",
-    "FoxCreateBlurBord": "Foxtools: Create BlurBord",
-    "FoxTrimBlackBoard": "Foxtools: Trim BlackBoard",
-    "FoxImageRotate": "Foxtools: Image Rotate",
-    "FoxLoadImageList": "Foxtools: Load ImageList",
-    "FoxSaveImagePlus": "Foxtools: Save ImagePlus",
-    "FoxColorMatch": "Foxtools: ColorMatch",
-    "FoxLoadImageBatch": "Foxtools: Load Image Batch",
-    "FoxImageExtractFromBatch": "Foxtools: Image Extract From Batch",
-    "FoxImageTileBatch": "Foxtools: Image Tile Batch",
-    "FoxImageConcanate": "Foxtools: Image Concanate",
-    "FoxImageResizeByShorterSide": "Foxtools: Image Resize By Shorter Side",
-    "FoxImageResizeByLongerSide": "Foxtools: Image Resize By Longer Side",
+    "FoxBatchImageFromList": "FoxTools: Batch Image From List",
+    "FoxImageAdd": "FoxTools: Image Add",
+    "FoxCreateBlurBord": "FoxTools: Create BlurBord",
+    "FoxTrimBlackBoard": "FoxTools: Trim BlackBoard",
+    "FoxImageRotate": "FoxTools: Image Rotate",
+    "FoxLoadImageList": "FoxTools: Load ImageList",
+    "FoxSaveImagePlus": "FoxTools: Save ImagePlus",
+    "FoxColorMatch": "FoxTools: ColorMatch",
+    "FoxLoadImageBatch": "FoxTools: Load Image Batch",
+    "FoxImageExtractFromBatch": "FoxTools: Image Extract From Batch",
+    "FoxImageTileBatch": "FoxTools: Image Tile Batch",
+    "FoxImageConcanate": "FoxTools: Image Concanate",
+    "FoxImageResizeByShorterSide": "FoxTools: Image Resize By Shorter Side",
+    "FoxImageResizeByLongerSide": "FoxTools: Image Resize By Longer Side",
 }
 
