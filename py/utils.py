@@ -45,6 +45,7 @@ def tensor2pil(image):
 # PIL to Tensor
 def pil2tensor(image):
     return torch.from_numpy(np.array(image).astype(np.float32) / 255.0).unsqueeze(0)
+    
 
 # PIL Hex
 def pil2hex(image):

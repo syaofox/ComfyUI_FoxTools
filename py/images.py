@@ -5,23 +5,11 @@ import numpy as np
 from PIL import Image, ImageOps, ImageFilter,ImageChops
 from PIL.PngImagePlugin import PngInfo
 import torchvision.transforms.v2 as T
-from .utils import log, generate_random_name 
+from .utils import log, generate_random_name, pil2tensor,tensor_to_image,image_to_tensor
 import datetime
 import json
 import folder_paths
 import shutil
-
-def pil2tensor(image):
-    return torch.from_numpy(np.array(image).astype(np.float32) / 255.0).unsqueeze(0) 
-
-NODE_NAME = 'ImageAdd'
-
-def tensor_to_image(image):
-    return np.array(T.ToPILImage()(image.permute(2, 0, 1)).convert('RGB'))
-
-def image_to_tensor(image):
-    return T.ToTensor()(image).permute(1, 2, 0)
-    #return T.ToTensor()(Image.fromarray(image)).permute(1, 2, 0)
 
 
 class ImageAdd:
@@ -360,7 +348,7 @@ class SaveImagePlus:
                     try:
                         os.makedirs(custom_path)
                     except Exception as e:
-                        log(f"Error: {NODE_NAME} skipped, because unable to create temporary folder.",
+                        log(f"skipped, because unable to create temporary folder.",
                             message_type='warning')
                         raise FileNotFoundError(f"cannot create custom_path {custom_path}, {e}")
 
@@ -372,14 +360,14 @@ class SaveImagePlus:
                     os.makedirs(temp_dir)
                 except Exception as e:
                     print(e)
-                    log(f"Error: {NODE_NAME} skipped, because unable to create temporary folder.",
+                    log(f"skipped, because unable to create temporary folder.",
                         message_type='warning')
                 try:
                     preview_filename = os.path.join(generate_random_name('saveimage_preview_', '_temp', 16) + '.png')
                     img.save(os.path.join(temp_dir, preview_filename))
                 except Exception as e:
                     print(e)
-                    log(f"Error: {NODE_NAME} skipped, because unable to create temporary file.", message_type='warning')
+                    log(f"skipped, because unable to create temporary file.", message_type='warning')
 
             # check if file exists, change filename
             while os.path.isfile(os.path.join(full_output_folder, f"{file}.{format}")):
@@ -400,7 +388,7 @@ class SaveImagePlus:
                 if img.mode == "RGBA":
                     img = img.convert("RGB")
                 img.save(image_file_name, quality=quality)
-            log(f"{NODE_NAME} -> Saving image to {image_file_name}")
+            log(f"Saving image to {image_file_name}")
 
             if save_workflow_as_json:
                 try:
@@ -505,7 +493,9 @@ class ColorMatch:
         out = torch.stack(out, dim=0).to(torch.float32)
         out.clamp_(0, 1)
         return (out,)
-    
+
+
+
       
 NODE_CLASS_MAPPINGS = {
     "Foxtools: BatchImageFromList": MakeBatchFromImageList,
