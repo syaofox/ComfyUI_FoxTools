@@ -26,6 +26,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageOps, ImageFilter
 import cv2
 from scipy.interpolate import RBFInterpolator
 
+from .utils import tensor_to_image, image_to_tensor
+
 # DLIB_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "dlib")
 DLIB_DIR = os.path.join(folder_paths.models_dir, "dlib")
 INSIGHTFACE_DIR = os.path.join(folder_paths.models_dir, "insightface")
@@ -42,12 +44,6 @@ THRESHOLDS = { # from DeepFace
         "DeepID": {"cosine": 0.015, "euclidean": 45, "L2_norm": 0.17},
         "GhostFaceNet": {"cosine": 0.65, "euclidean": 35.71, "L2_norm": 1.10},
     }
-
-def tensor_to_image(image):
-    return np.array(T.ToPILImage()(image.permute(2, 0, 1)).convert('RGB'))
-
-def image_to_tensor(image):
-    return T.ToTensor()(image).permute(1, 2, 0)
 
 
 def expand_mask(mask, expand, tapered_corners):
@@ -965,7 +961,7 @@ class faceSegmentation:
             if smooth > 1:
                 if smooth % 2 == 0:
                     smooth+= 1
-                mask = T.functional.gaussian_blur(mask.bool().unsqueeze(1), smooth).squeeze(1).float()
+                mask = T.functional.gaussian_blur(mask.bool().unsqueeze(1), smooth).squeeze(1).float() # type: ignore
             
             if grow != 0:
                 mask = expand_mask(mask, grow, grow_tapered)
