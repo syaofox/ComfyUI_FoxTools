@@ -51,8 +51,8 @@ def get_extension_config(reload=False):
     if reload == False and config is not None:
         return config
 
-    config_path = get_ext_dir("pysssss.json")
-    default_config_path = get_ext_dir("pysssss.default.json")
+    config_path = get_ext_dir("foxtools.json")
+    default_config_path = get_ext_dir("foxtools.default.json")
     if not os.path.exists(config_path):
         if os.path.exists(default_config_path):
             shutil.copy(default_config_path, config_path)
@@ -62,7 +62,7 @@ def get_extension_config(reload=False):
                 return {"name": "Unknown", "version": -1}
     
         else:
-            log("Missing pysssss.default.json, this extension may not work correctly. Please reinstall the extension.",message_type='error')
+            log("Missing foxtools.default.json, this extension may not work correctly. Please reinstall the extension.",message_type='error')
             print(f"Extension path: {get_ext_dir()}")
             return {"name": "Unknown", "version": -1}
 
@@ -74,7 +74,7 @@ def get_extension_config(reload=False):
 def get_web_ext_dir():
     config = get_extension_config()
     name = config["name"]
-    dir = get_comfy_dir("web/extensions/pysssss")
+    dir = get_comfy_dir("web/extensions/foxtools")
     if not os.path.exists(dir):
         os.makedirs(dir)
     dir = os.path.join(dir, name)
