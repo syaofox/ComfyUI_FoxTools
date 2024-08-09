@@ -751,6 +751,25 @@ class LoadImageBatch:
             return sha
 
 
+class ImageExtractFromBatch:
+    INPUT_TYPES = lambda: {
+        "required": {
+            "images": ("IMAGE",),
+            "index": ("INT", {"default": 0, "min": 0, "step": 1}),
+        }
+    }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "execute"
+    CATEGORY = "FoxTools/Images"
+
+    def execute(self, images: torch.Tensor, index: int):
+        assert isinstance(images, torch.Tensor)
+        assert isinstance(index, int)
+
+        img = images[index].unsqueeze(0)
+
+        return (img,)
+
       
 NODE_CLASS_MAPPINGS = {
     "FoxBatchImageFromList": MakeBatchFromImageList,
@@ -762,6 +781,7 @@ NODE_CLASS_MAPPINGS = {
     "FoxSaveImagePlus": SaveImagePlus,
     "FoxColorMatch": ColorMatch,
     "FoxLoadImageBatch": LoadImageBatch,
+    "FoxImageExtractFromBatch": ImageExtractFromBatch,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -774,5 +794,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FoxSaveImagePlus": "Foxtools: Save ImagePlus",
     "FoxColorMatch": "Foxtools: ColorMatch",
     "FoxLoadImageBatch": "Foxtools: Load Image Batch",
+    "FoxImageExtractFromBatch": "Foxtools: Image Extract From Batch",
 }
 
