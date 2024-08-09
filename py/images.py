@@ -7,11 +7,12 @@ import numpy as np
 from PIL import Image, ImageOps, ImageFilter,ImageChops
 from PIL.PngImagePlugin import PngInfo
 import torchvision.transforms.v2 as T
-from .utils import log, generate_random_name, pil2tensor,tensor_to_image,image_to_tensor, get_sha256
+from .utils import log, generate_random_name, pil2tensor,tensor_to_image,image_to_tensor, get_sha256,tensor2pil
 import datetime
 import json
 import folder_paths
 import shutil
+
 
 NODE_FILE = os.path.abspath(__file__)
 WAS_SUITE_ROOT = os.path.dirname(NODE_FILE)
@@ -770,7 +771,45 @@ class ImageExtractFromBatch:
 
         return (img,)
 
-      
+
+class ImageTileBatch:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "num_tiles": ("INT", {"default":4, "max": 64, "min":2, "step":1}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("IMAGES",)
+    FUNCTION = "tile_image"
+
+    CATEGORY = "FoxTools/Images"
+
+    def tile_image(self, image, num_tiles=6):
+        image = tensor2pil(image.squeeze(0))
+        img_width, img_height = image.size
+
+        num_rows = int(num_tiles ** 0.5)
+        num_cols = (num_tiles + num_rows - 1) // num_rows
+        tile_width = img_width // num_cols
+        tile_height = img_height // num_rows
+
+        tiles = []
+        for y in range(0, img_height, tile_height):
+            for x in range(0, img_width, tile_width):
+                tile = image.crop((x, y, x + tile_width, y + tile_height))
+                tiles.append(pil2tensor(tile))
+
+        tiles = torch.stack(tiles, dim=0).squeeze(1)
+
+        return (tiles, )
+
 NODE_CLASS_MAPPINGS = {
     "FoxBatchImageFromList": MakeBatchFromImageList,
     "FoxImageAdd": ImageAdd,
@@ -782,6 +821,7 @@ NODE_CLASS_MAPPINGS = {
     "FoxColorMatch": ColorMatch,
     "FoxLoadImageBatch": LoadImageBatch,
     "FoxImageExtractFromBatch": ImageExtractFromBatch,
+    "FoxImageTileBatch": ImageTileBatch,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -795,5 +835,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FoxColorMatch": "Foxtools: ColorMatch",
     "FoxLoadImageBatch": "Foxtools: Load Image Batch",
     "FoxImageExtractFromBatch": "Foxtools: Image Extract From Batch",
+    "FoxImageTileBatch": "Foxtools: Image Tile Batch",
 }
 
