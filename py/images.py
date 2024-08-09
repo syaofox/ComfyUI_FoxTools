@@ -7,6 +7,8 @@ import numpy as np
 from PIL import Image, ImageOps, ImageFilter,ImageChops
 from PIL.PngImagePlugin import PngInfo
 import torchvision.transforms.v2 as T
+import torchvision.transforms.functional as F
+from torchvision.transforms import InterpolationMode
 from .utils import log, generate_random_name, pil2tensor,tensor_to_image,image_to_tensor, get_sha256,tensor2pil
 import datetime
 import json
@@ -890,6 +892,98 @@ Concatenates the image2 to image1 in the specified direction.
             concatenated_image = torch.cat((image2_resized, image1), dim=1)  # Concatenate along height
         return concatenated_image,
 
+
+
+
+
+class ImageResizeByShorterSide:
+    CATEGORY = "FoxTools/Images"
+    INPUT_TYPES = lambda: {
+        "required": {
+            "image": ("IMAGE",),
+            "size": ("INT", {"default": 512, "min": 0, "step": 1, "max": 99999}),
+            "interpolation_mode": (
+                ["bicubic", "bilinear", "nearest", "nearest exact"],
+            ),
+        }
+    }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "execute"
+
+    def execute(
+        self,
+        image: torch.Tensor,
+        size: int,
+        interpolation_mode: str,
+    ):
+        assert isinstance(image, torch.Tensor)
+        assert isinstance(size, int)
+        assert isinstance(interpolation_mode, str)
+
+        interpolation_mode = interpolation_mode.upper().replace(" ", "_")
+        interpolation_mode = getattr(InterpolationMode, interpolation_mode)
+
+        image = image.permute(0, 3, 1, 2)
+        image = F.resize(
+            image,
+            size, # type: ignore
+            interpolation=interpolation_mode, # type: ignore
+            antialias=True,
+        )
+        image = image.permute(0, 2, 3, 1)
+
+        return (image,)
+
+
+
+class ImageResizeByLongerSide:
+    CATEGORY = "FoxTools/Images"
+    INPUT_TYPES = lambda: {
+        "required": {
+            "image": ("IMAGE",),
+            "size": ("INT", {"default": 512, "min": 0, "step": 1, "max": 99999}),
+            "interpolation_mode": (
+                ["bicubic", "bilinear", "nearest", "nearest exact"],
+            ),
+        }
+    }
+    RETURN_TYPES = ("IMAGE",)
+    FUNCTION = "execute"
+
+    def execute(
+        self,
+        image: torch.Tensor,
+        size: int,
+        interpolation_mode: str,
+    ):
+        assert isinstance(image, torch.Tensor)
+        assert isinstance(size, int)
+        assert isinstance(interpolation_mode, str)
+
+        interpolation_mode = interpolation_mode.upper().replace(" ", "_")
+        interpolation_mode = getattr(InterpolationMode, interpolation_mode)
+
+        _, h, w, _ = image.shape
+
+        if h >= w:
+            new_h = size
+            new_w = round(w * new_h / h)
+        else:  # h < w
+            new_w = size
+            new_h = round(h * new_w / w)
+
+        image = image.permute(0, 3, 1, 2)
+        image = F.resize(
+            image,
+            (new_h, new_w), # type: ignore
+            interpolation=interpolation_mode, # type: ignore
+            antialias=True,
+        )
+        image = image.permute(0, 2, 3, 1)
+
+        return (image,)
+    
+
 NODE_CLASS_MAPPINGS = {
     "FoxBatchImageFromList": MakeBatchFromImageList,
     "FoxImageAdd": ImageAdd,
@@ -903,6 +997,8 @@ NODE_CLASS_MAPPINGS = {
     "FoxImageExtractFromBatch": ImageExtractFromBatch,
     "FoxImageTileBatch": ImageTileBatch,
     "FoxImageConcanate": ImageConcanate,
+    "FoxImageResizeByShorterSide": ImageResizeByShorterSide,
+    "FoxImageResizeByLongerSide": ImageResizeByLongerSide,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -918,5 +1014,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "FoxImageExtractFromBatch": "Foxtools: Image Extract From Batch",
     "FoxImageTileBatch": "Foxtools: Image Tile Batch",
     "FoxImageConcanate": "Foxtools: Image Concanate",
+    "FoxImageResizeByShorterSide": "Foxtools: Image Resize By Shorter Side",
+    "FoxImageResizeByLongerSide": "Foxtools: Image Resize By Longer Side",
 }
 
