@@ -2,17 +2,27 @@ import cv2
 import numpy as np
 import onnxruntime
 import torch
+import random
 import torchvision.transforms.v2 as T
 import torch.nn.functional as F
 from typing import Any, List
 from comfy.utils import ProgressBar
-
+from nodes import MAX_RESOLUTION, SaveImage
+import folder_paths
+from PIL import Image, ImageOps 
 
 def tensor_to_image(image):
     return np.array(T.ToPILImage()(image.permute(2, 0, 1)).convert('RGB'))
 
 def image_to_tensor(image):
     return T.ToTensor()(image).permute(1, 2, 0)
+
+def tensor2pil(image):
+    return Image.fromarray(np.clip(255. * image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8))
+
+# Convert PIL to Tensor
+def pil2tensor(image):
+    return torch.from_numpy(np.array(image).astype(np.float32) / 255.0).unsqueeze(0)
 
 
 
@@ -196,14 +206,41 @@ class CreateFaceMask:
         
         return (out_mask, out_image, )
 
+class PreviewMask(SaveImage):
+    def __init__(self):
+        self.output_dir = folder_paths.get_temp_directory()
+        self.type = "temp"
+        self.prefix_append =''.join(random.choice("abcdehijklmnopqrstupvxyzfg") for x in range(5))
+        self.compress_level = 4
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+                "required": {
+                                "mask": ("MASK",), 
+                            }
+            }
     
+    RETURN_TYPES = ()
+    OUTPUT_NODE = True
+    FUNCTION = "run"
+    CATEGORY = "FoxTools/Masks"
+
+    # 运行的函数
+    def run(self, mask ):
+        img=tensor2pil(mask)
+        img=img.convert('RGB')
+        img=pil2tensor(img) 
+        return self.save_images(img, 'temp_', None,  None)
 
 NODE_CLASS_MAPPINGS = {
     "FoxTools: FaceOcclusionModelLoader": FaceOcclusionModelLoader,
-    "FoxTools: CreateFaceMask": CreateFaceMask
+    "FoxTools: CreateFaceMask": CreateFaceMask,
+    "FoxTools: PreviewMask": PreviewMask
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "FoxTools: FaceOcclusionModelLoader": "FoxTools: FaceOcclusionModelLoader",
-    "FoxTools: CreateFaceMask": "FoxTools: CreateFaceMask"
+    "FoxTools: CreateFaceMask": "FoxTools: CreateFaceMask",
+    "FoxTools: PreviewMask": "FoxTools: PreviewMask"
 }
