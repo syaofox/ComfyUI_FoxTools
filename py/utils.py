@@ -7,7 +7,7 @@ import numpy as np
 import hashlib
 import glob
 from PIL import Image, ImageFilter, ImageChops, ImageDraw, ImageOps, ImageEnhance, ImageFont
-
+from typing import Union, List
 
 def log(message:str, message_type:str='info'):
     name = 'FoxTools'
@@ -83,6 +83,20 @@ def sam2tensor(image):
     # Convert the numpy array to a tensor
     tensor_image = torch.from_numpy(chw_image)
     return tensor_image
+
+def tensor2pilex(image: torch.Tensor) -> List[Image.Image]:
+    batch_count = image.size(0) if len(image.shape) > 3 else 1
+    if batch_count > 1:
+        out = []
+        for i in range(batch_count):
+            out.extend(tensor2pilex(image[i]))
+        return out
+
+    return [
+        Image.fromarray(
+            np.clip(255.0 * image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8)
+        )
+    ]
 
 # SHA-256 Hash
 def get_sha256(file_path):

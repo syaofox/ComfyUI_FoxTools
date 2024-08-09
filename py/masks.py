@@ -9,7 +9,9 @@ from typing import Any, List
 from comfy.utils import ProgressBar
 from nodes import MAX_RESOLUTION, SaveImage
 import folder_paths
-from PIL import Image, ImageOps 
+from PIL import Image, ImageFilter 
+import scipy.ndimage
+from .utils import tensor2pilex
 
 def tensor_to_image(image):
     return np.array(T.ToPILImage()(image.permute(2, 0, 1)).convert('RGB'))
@@ -233,14 +235,110 @@ class PreviewMask(SaveImage):
         img=pil2tensor(img) 
         return self.save_images(img, 'temp_', None,  None)
 
+
+class GrowMaskWithBlur:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "mask": ("MASK",),
+                "expand": ("INT", {"default": 0, "min": -MAX_RESOLUTION, "max": MAX_RESOLUTION, "step": 1}),
+                "incremental_expandrate": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 100.0, "step": 0.1}),
+                "tapered_corners": ("BOOLEAN", {"default": True}),
+                "flip_input": ("BOOLEAN", {"default": False}),
+                "blur_radius": ("FLOAT", {
+                    "default": 0.0,
+                    "min": 0.0,
+                    "max": 100,
+                    "step": 0.1
+                }),
+                "lerp_alpha": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "decay_factor": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
+            },
+            "optional": {
+                "fill_holes": ("BOOLEAN", {"default": False}),
+            },
+        }
+
+    CATEGORY = "FoxTools/Masks"
+    RETURN_TYPES = ("MASK", "MASK",)
+    RETURN_NAMES = ("mask", "mask_inverted",)
+    FUNCTION = "expand_mask"
+    DESCRIPTION = """
+# GrowMaskWithBlur
+- mask: Input mask or mask batch
+- expand: Expand or contract mask or mask batch by a given amount
+- incremental_expandrate: increase expand rate by a given amount per frame
+- tapered_corners: use tapered corners
+- flip_input: flip input mask
+- blur_radius: value higher than 0 will blur the mask
+- lerp_alpha: alpha value for interpolation between frames
+- decay_factor: decay value for interpolation between frames
+- fill_holes: fill holes in the mask (slow)"""
+    
+    def expand_mask(self, mask, expand, tapered_corners, flip_input, blur_radius, incremental_expandrate, lerp_alpha, decay_factor, fill_holes=False):
+        alpha = lerp_alpha
+        decay = decay_factor
+        if flip_input:
+            mask = 1.0 - mask
+        c = 0 if tapered_corners else 1
+        kernel = np.array([[c, 1, c],
+                           [1, 1, 1],
+                           [c, 1, c]])
+        growmask = mask.reshape((-1, mask.shape[-2], mask.shape[-1])).cpu()
+        out = []
+        previous_output = None
+        current_expand = expand
+        for m in growmask:
+            output = m.numpy().astype(np.float32)
+            for _ in range(abs(round(current_expand))):
+                if current_expand < 0:
+                    output = scipy.ndimage.grey_erosion(output, footprint=kernel)
+                else:
+                    output = scipy.ndimage.grey_dilation(output, footprint=kernel)
+            if current_expand < 0:
+                current_expand -= abs(incremental_expandrate)
+            else:
+                current_expand += abs(incremental_expandrate)
+            if fill_holes:
+                binary_mask = output > 0
+                output = scipy.ndimage.binary_fill_holes(binary_mask)
+                output = output.astype(np.float32) * 255 # type: ignore
+            output = torch.from_numpy(output)
+            if alpha < 1.0 and previous_output is not None:
+                # Interpolate between the previous and current frame
+                output = alpha * output + (1 - alpha) * previous_output
+            if decay < 1.0 and previous_output is not None:
+                # Add the decayed previous output to the current frame
+                output += decay * previous_output
+                output = output / output.max()
+            previous_output = output
+            out.append(output)
+
+        if blur_radius != 0:
+            # Convert the tensor list to PIL images, apply blur, and convert back
+            for idx, tensor in enumerate(out):
+                # Convert tensor to PIL image
+                pil_image = tensor2pilex(tensor.cpu().detach())[0]
+                # Apply Gaussian blur
+                pil_image = pil_image.filter(ImageFilter.GaussianBlur(blur_radius))
+                # Convert back to tensor
+                out[idx] = pil2tensor(pil_image)
+            blurred = torch.cat(out, dim=0)
+            return (blurred, 1.0 - blurred)
+        else:
+            return (torch.stack(out, dim=0), 1.0 - torch.stack(out, dim=0),)
+        
+
 NODE_CLASS_MAPPINGS = {
     "FoxFaceOcclusionModelLoader": FaceOcclusionModelLoader,
     "FoxCreateFaceMask": CreateFaceMask,
-    "FoxPreviewMask": PreviewMask
+    "FoxPreviewMask": PreviewMask,
+    "FoxGrowMaskWithBlur": GrowMaskWithBlur
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "FoxFaceOcclusionModelLoader": "FoxTools: FaceOcclusionModelLoader",
     "FoxCreateFaceMask": "FoxTools: CreateFaceMask",
-    "FoxPreviewMask": "FoxTools: PreviewMask"
+    "FoxGrowMaskWithBlur": "FoxTools: Grow Mask With Blur"
 }
