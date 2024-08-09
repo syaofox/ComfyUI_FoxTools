@@ -182,15 +182,15 @@ class InsightFace:
 
 class DLib:
     def __init__(self):
-        self.face_detector = dlib.get_frontal_face_detector()
+        self.face_detector = dlib.get_frontal_face_detector() # type: ignore
         # check if the models are available
         if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat")):
             raise Exception("The 5 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_5_face_landmarks.dat")
         if not os.path.exists(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat")):
             raise Exception("The face recognition model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/dlib_face_recognition_resnet_model_v1.dat")
 
-        self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat"))
-        self.face_recognition = dlib.face_recognition_model_v1(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat"))
+        self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat")) # type: ignore
+        self.face_recognition = dlib.face_recognition_model_v1(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat")) # type: ignore
         self.thresholds = THRESHOLDS["Dlib"]
 
     def get_face(self, image):
@@ -216,17 +216,18 @@ class DLib:
         y = []
         w = []
         h = []
-        for face in faces:
-            x1 = max(0, face.left() - int(face.width() * padding_percent) - padding)
-            y1 = max(0, face.top() - int(face.height() * padding_percent) - padding)
-            x2 = min(image.width, face.right() + int(face.width() * padding_percent) + padding)
-            y2 = min(image.height, face.bottom() + int(face.height() * padding_percent) + padding)
-            crop = image.crop((x1, y1, x2, y2))
-            img.append(T.ToTensor()(crop).permute(1, 2, 0).unsqueeze(0))
-            x.append(x1)
-            y.append(y1)
-            w.append(x2 - x1)
-            h.append(y2 - y1)
+        if faces is not None:
+            for face in faces:
+                x1 = max(0, face.left() - int(face.width() * padding_percent) - padding)
+                y1 = max(0, face.top() - int(face.height() * padding_percent) - padding)
+                x2 = min(image.width, face.right() + int(face.width() * padding_percent) + padding)
+                y2 = min(image.height, face.bottom() + int(face.height() * padding_percent) + padding)
+                crop = image.crop((x1, y1, x2, y2))
+                img.append(T.ToTensor()(crop).permute(1, 2, 0).unsqueeze(0))
+                x.append(x1)
+                y.append(y1)
+                w.append(x2 - x1)
+                h.append(y2 - y1)
         return (img, x, y, w, h)
     
     def get_keypoints(self, image):
@@ -245,11 +246,11 @@ class DLib:
         if extended_landmarks:
             if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat")):
                 raise Exception("The 68 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_81_face_landmarks.dat")
-            predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat"))
+            predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat")) # type: ignore
         else:
             if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat")):
                 raise Exception("The 68 point landmark model is not available. Please download it from https://huggingface.co/matt3ounstable/dlib_predictor_recognition/blob/main/shape_predictor_68_face_landmarks.dat")
-            predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat"))
+            predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat")) # type: ignore
 
         faces = self.get_face(image)
         if faces is not None:
@@ -274,7 +275,7 @@ class DLib:
 
 class DLib_shaker:
     def __init__(self, predictor=68):
-        self.face_detector = dlib.get_frontal_face_detector()
+        self.face_detector = dlib.get_frontal_face_detector() # type: ignore
         # check if the models are available
         # check if the models are available
         if not os.path.exists(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat")):
@@ -288,13 +289,13 @@ class DLib_shaker:
 
         self.predictor=predictor
         if predictor == 81:
-            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat"))
+            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_81_face_landmarks.dat")) # type: ignore
         elif predictor == 5:
-            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat"))
+            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_5_face_landmarks.dat")) # type: ignore
         else:
-            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat"))
+            self.shape_predictor = dlib.shape_predictor(os.path.join(DLIB_DIR, "shape_predictor_68_face_landmarks.dat")) # type: ignore
 
-        self.face_recognition = dlib.face_recognition_model_v1(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat"))
+        self.face_recognition = dlib.face_recognition_model_v1(os.path.join(DLIB_DIR, "dlib_face_recognition_resnet_model_v1.dat")) # type: ignore
         #self.thresholds = THRESHOLDS["Dlib"]
 
     def get_face(self, image):
@@ -367,8 +368,8 @@ class DLib_shaker:
 
             try:
                 if landmarkType == "ALL" or AlignType == "Landmarks":
-                    landmarks1,leftEye1,rightEye1,mouth1 = self.get_all_landmarks(image1)
-                    landmarks2,leftEye2,rightEye2,mouth2 = self.get_all_landmarks(image2)
+                    landmarks1,leftEye1,rightEye1,mouth1 = self.get_all_landmarks(image1) # type: ignore
+                    landmarks2,leftEye2,rightEye2,mouth2 = self.get_all_landmarks(image2) # type: ignore
                 else:
                     landmarks1 = self.get_landmarks(image1)
                     landmarks2 = self.get_landmarks(image2)              
@@ -389,7 +390,7 @@ class DLib_shaker:
 
 
             #不知道原作者为何把这个数组叫dst，其实这是变形前的坐标，即原图的坐标
-            dst_points = np.append(dst_points,landmarks1,axis=0)
+            dst_points = np.append(dst_points,landmarks1,axis=0) # type: ignore
 
             #变形目标人物的landmarks，先计算边界框
             landmarks2=np.array(landmarks2)
@@ -419,8 +420,8 @@ class DLib_shaker:
             #保持人物脸部边界框中心点不变，水平方向上缩放，使边界框的比例变得跟目标人物的边界框比例一致
                 landmarks1_cpy[:, 0] = (landmarks1_cpy[:, 0] - middlePoint[0]) * ratio2 / ratio1 + middlePoint[0]
             elif AlignType=="Landmarks":
-                MiddleOfEyes1 = (leftEye1+rightEye1)/2
-                MiddleOfEyes2 = (leftEye2+rightEye2)/2
+                MiddleOfEyes1 = (leftEye1+rightEye1)/2 # type: ignore
+                MiddleOfEyes2 = (leftEye2+rightEye2)/2 # type: ignore
 
                 # angle = float(np.degrees(np.arctan2(leftEye2[1] - rightEye2[1], leftEye2[0] - rightEye2[0])))
                 # angle -= float(np.degrees(np.arctan2(leftEye1[1] - rightEye1[1], leftEye1[0] - rightEye1[0])))
@@ -1067,7 +1068,7 @@ class FaceWarp:
 
             if shape_from is None or shape_to is None:
                 print(f"\033[96mNo landmarks detected at frame {i}\033[0m")
-                img = img_to.unsqueeze(0)
+                img = img_to.unsqueeze(0) # type: ignore
                 mask = torch.zeros_like(img)[:,:,:1]
                 result_image.append(img)
                 result_mask.append(mask)

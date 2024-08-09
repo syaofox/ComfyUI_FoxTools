@@ -93,7 +93,7 @@ class FaceOcclusionModelLoader:
 
     RETURN_TYPES = ("FaceOcclusion_MODEL",)
     FUNCTION = "load_model"
-    CATEGORY = "FoxTools"
+    CATEGORY = "FoxTools/Masks"
 
     def load_model(self, occluder_model_path: str):
         model = Occluder(occluder_model_path)
@@ -116,7 +116,7 @@ class CreateFaceMask:
     RETURN_TYPES = ("MASK", "IMAGE", )
     RETURN_NAMES = ("mask", "image", )
     FUNCTION = "generate_mask"
-    CATEGORY = "FoxTools"
+    CATEGORY = "FoxTools/Masks"
 
     def generate_mask(self, face_occluder_model, input_image, grow, grow_tapered, blur):
 
@@ -204,6 +204,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "FoxTools: FaceOcclusionModelLoader": "FoxTools: Load Face Occlusion Model",
-    "FoxTools: CreateFaceMask": "FoxTools: Create Face Mask"
+    "FoxTools: FaceOcclusionModelLoader": "FoxTools: FaceOcclusionModelLoader",
+    "FoxTools: CreateFaceMask": "FoxTools: CreateFaceMask"
 }
