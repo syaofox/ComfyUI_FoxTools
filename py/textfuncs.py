@@ -92,7 +92,7 @@ class ShowText:
     OUTPUT_NODE = True
     OUTPUT_IS_LIST = (True,)
 
-    CATEGORY = "utils"
+    CATEGORY = "FoxTools/Text"
 
     def notify(self, text, unique_id=None, extra_pnginfo=None):
         if unique_id is not None and extra_pnginfo is not None:
@@ -115,17 +115,40 @@ class ShowText:
         return {"ui": {"text": text}, "result": (text,)}
 
 
+class PrimitiveText:
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "string": ("STRING", {"multiline": True, "default": ""}),
+            }
+        }
+
+    CATEGORY = "FoxTools/Text"
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("string",)
+
+    FUNCTION = "execute"
+
+    def execute(self, string=""):
+        return (string,)
+    
 
 NODE_CLASS_MAPPINGS = {
     "FoxRegTextFind": RegTextFind,
     "FoxGenSwapPathText": GenSwapPathText,
     "FoxShowText": ShowText,
+    "FoxPrimitiveText": PrimitiveText,
 
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "FoxRegTextFind": "Foxtools: RegTextFind",
     "FoxShowText": "Foxtools: ShowText",
+    "FoxPrimitiveText": "Foxtools: Primitive Text",
 }
 
 
