@@ -1,3 +1,5 @@
+import glob
+from random import random
 import torch
 import os
 import re
@@ -5,11 +7,18 @@ import numpy as np
 from PIL import Image, ImageOps, ImageFilter,ImageChops
 from PIL.PngImagePlugin import PngInfo
 import torchvision.transforms.v2 as T
-from .utils import log, generate_random_name, pil2tensor,tensor_to_image,image_to_tensor
+from .utils import log, generate_random_name, pil2tensor,tensor_to_image,image_to_tensor, get_sha256
 import datetime
 import json
 import folder_paths
 import shutil
+
+NODE_FILE = os.path.abspath(__file__)
+WAS_SUITE_ROOT = os.path.dirname(NODE_FILE)
+WAS_DATABASE = os.path.join(WAS_SUITE_ROOT, 'was_suite_settings.json')
+WAS_HISTORY_DATABASE = os.path.join(WAS_SUITE_ROOT, 'was_history.json')
+
+ALLOWED_EXT = ('.jpeg', '.jpg', '.png','.tiff', '.gif', '.bmp', '.webp')
 
 
 class ImageAdd:
@@ -495,6 +504,252 @@ class ColorMatch:
         return (out,)
 
 
+def update_history_images(new_paths):
+    HDB = WASDatabase(WAS_HISTORY_DATABASE)
+    if HDB.catExists("History") and HDB.keyExists("History", "Images"):
+        saved_paths = HDB.get("History", "Images")
+        for path_ in saved_paths:
+            if not os.path.exists(path_):
+                saved_paths.remove(path_)
+        if isinstance(new_paths, str):
+            if new_paths in saved_paths:
+                saved_paths.remove(new_paths)
+            saved_paths.append(new_paths)
+        elif isinstance(new_paths, list):
+            for path_ in new_paths:
+                if path_ in saved_paths:
+                    saved_paths.remove(path_)
+                saved_paths.append(path_)
+        HDB.update("History", "Images", saved_paths)
+    else:
+        if not HDB.catExists("History"):
+            HDB.insertCat("History")
+        if isinstance(new_paths, str):
+            HDB.insert("History", "Images", [new_paths])
+        elif isinstance(new_paths, list):
+            HDB.insert("History", "Images", new_paths)
+
+# WAS SETTINGS MANAGER
+
+class WASDatabase:
+    """
+    The WAS Suite Database Class provides a simple key-value database that stores
+    data in a flatfile using the JSON format. Each key-value pair is associated with
+    a category.
+
+    Attributes:
+        filepath (str): The path to the JSON file where the data is stored.
+        data (dict): The dictionary that holds the data read from the JSON file.
+
+    Methods:
+        insert(category, key, value): Inserts a key-value pair into the database
+            under the specified category.
+        get(category, key): Retrieves the value associated with the specified
+            key and category from the database.
+        update(category, key): Update a value associated with the specified
+            key and category from the database.
+        delete(category, key): Deletes the key-value pair associated with the
+            specified key and category from the database.
+        _save(): Saves the current state of the database to the JSON file.
+    """
+    def __init__(self, filepath):
+        self.filepath = filepath
+        try:
+            with open(filepath, 'r') as f:
+                self.data = json.load(f)
+        except FileNotFoundError:
+            self.data = {}
+
+    def catExists(self, category):
+        return category in self.data
+
+    def keyExists(self, category, key):
+        return category in self.data and key in self.data[category]
+
+    def insert(self, category, key, value):
+        if not isinstance(category, str) or not isinstance(key, str):
+            log("Category and key must be strings", message_type="warning")
+            return
+
+        if category not in self.data:
+            self.data[category] = {}
+        self.data[category][key] = value
+        self._save()
+
+    def update(self, category, key, value):
+        if category in self.data and key in self.data[category]:
+            self.data[category][key] = value
+            self._save()
+
+    def updateCat(self, category, dictionary):
+        self.data[category].update(dictionary)
+        self._save()
+
+    def get(self, category, key):
+        return self.data.get(category, {}).get(key, None)
+
+    def getDB(self):
+        return self.data
+
+    def insertCat(self, category):
+        if not isinstance(category, str):
+            log("Category must be a string", message_type="warning")
+            return
+
+        if category in self.data:
+            log(f"The database category '{category}' already exists!", message_type="warning")
+            return
+        self.data[category] = {}
+        self._save()
+
+    def getDict(self, category):
+        if category not in self.data:
+            log(f"The database category '{category}' does not exist!", message_type="warning")
+            return {}
+        return self.data[category]
+
+    def delete(self, category, key):
+        if category in self.data and key in self.data[category]:
+            del self.data[category][key]
+            self._save()
+
+    def _save(self):
+        try:
+            with open(self.filepath, 'w') as f:
+                json.dump(self.data, f, indent=4)
+        except FileNotFoundError:
+            log(f"Cannot save database to file '{self.filepath}'. "
+                 "Storing the data in the object instead. Does the folder and node file have write permissions?", message_type="warning")
+        except Exception as e:
+            log(f"Error while saving JSON data: {e}", message_type="warning")
+
+# Initialize the settings database
+WDB = WASDatabase(WAS_DATABASE)
+
+class LoadImageBatch:
+    def __init__(self):
+        self.HDB = WASDatabase(WAS_HISTORY_DATABASE)
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "mode": (["single_image", "incremental_image", "random"],),
+                "index": ("INT", {"default": 0, "min": 0, "max": 150000, "step": 1}),
+                "label": ("STRING", {"default": 'Batch 001', "multiline": False}),
+                "path": ("STRING", {"default": '', "multiline": False}),
+                "pattern": ("STRING", {"default": '*', "multiline": False}),
+                "allow_RGBA_output": (["false","true"],),
+            },
+            "optional": {
+                "filename_text_extension": (["true", "false"],),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE","STRING")
+    RETURN_NAMES = ("image","filename_text")
+    FUNCTION = "load_batch_images"
+
+    CATEGORY = "FoxTools/Images"
+
+    def load_batch_images(self, path, pattern='*', index=0, mode="single_image", label='Batch 001', allow_RGBA_output='false', filename_text_extension='true'):
+
+        allow_RGBA_output = (allow_RGBA_output == 'true')
+
+        if not os.path.exists(path):
+            return (None, )
+        fl = self.BatchImageLoader(path, label, pattern)
+        new_paths = fl.image_paths
+        if mode == 'single_image':
+            image, filename = fl.get_image_by_id(index) # type: ignore
+            if image == None:
+                log(f"No valid image was found for the inded `{index}`", message_type="warning")
+                return (None, None)
+        elif mode == 'incremental_image':
+            image, filename = fl.get_next_image()
+            if image == None:
+                log(f"No valid image was found for the next ID. Did you remove images from the source directory?", message_type="warning")
+                return (None, None)
+        else:
+            newindex = int(random.random() * len(fl.image_paths))
+            image, filename = fl.get_image_by_id(newindex) # type: ignore
+            if image == None:
+                log(f"No valid image was found for the next ID. Did you remove images from the source directory?", message_type="warning")
+                return (None, None)
+
+
+        # Update history
+        update_history_images(new_paths)
+
+        if not allow_RGBA_output:
+           image = image.convert("RGB")
+
+        if filename_text_extension == "false":
+            filename = os.path.splitext(filename)[0]
+
+        return (pil2tensor(image), filename)
+
+    class BatchImageLoader:
+        def __init__(self, directory_path, label, pattern):
+            self.WDB = WDB
+            self.image_paths = []
+            self.load_images(directory_path, pattern)
+            self.image_paths.sort()
+            stored_directory_path = self.WDB.get('Batch Paths', label)
+            stored_pattern = self.WDB.get('Batch Patterns', label)
+            if stored_directory_path != directory_path or stored_pattern != pattern:
+                self.index = 0
+                self.WDB.insert('Batch Counters', label, 0)
+                self.WDB.insert('Batch Paths', label, directory_path)
+                self.WDB.insert('Batch Patterns', label, pattern)
+            else:
+                self.index = self.WDB.get('Batch Counters', label)
+            self.label = label
+
+        def load_images(self, directory_path, pattern):
+            for file_name in glob.glob(os.path.join(glob.escape(directory_path), pattern), recursive=True):
+                if file_name.lower().endswith(ALLOWED_EXT):
+                    abs_file_path = os.path.abspath(file_name)
+                    self.image_paths.append(abs_file_path)
+
+        def get_image_by_id(self, image_id):
+            if image_id < 0 or image_id >= len(self.image_paths):
+                log(f"Invalid image index `{image_id}`", message_type="warning")
+                return
+            i = Image.open(self.image_paths[image_id])
+            i = ImageOps.exif_transpose(i)
+            return (i, os.path.basename(self.image_paths[image_id]))
+
+        def get_next_image(self):
+            if self.index >= len(self.image_paths):
+                self.index = 0
+            image_path = self.image_paths[self.index]
+            self.index += 1
+            if self.index == len(self.image_paths):
+                self.index = 0
+            log(f'{self.label} Index: {self.index}', message_type="warning")
+            self.WDB.insert('Batch Counters', self.label, self.index)
+            i = Image.open(image_path)
+            i = ImageOps.exif_transpose(i)
+            return (i, os.path.basename(image_path))
+
+        def get_current_image(self):
+            if self.index >= len(self.image_paths):
+                self.index = 0
+            image_path = self.image_paths[self.index]
+            return os.path.basename(image_path)
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        if kwargs['mode'] != 'single_image':
+            return float("NaN")
+        else:
+            fl = LoadImageBatch.BatchImageLoader(kwargs['path'], kwargs['label'], kwargs['pattern'])
+            filename = fl.get_current_image()
+            image = os.path.join(kwargs['path'], filename)
+            sha = get_sha256(image)
+            return sha
+
 
       
 NODE_CLASS_MAPPINGS = {
@@ -506,6 +761,7 @@ NODE_CLASS_MAPPINGS = {
     "Foxtools: LoadImageList": LoadImageList,
     "Foxtools: SaveImagePlus": SaveImagePlus,
     "Foxtools: ColorMatch": ColorMatch,
+    "FoxLoadImageBatch": LoadImageBatch,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -516,6 +772,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Foxtools: ImageRotate": "Foxtools: ImageRotate",
     "Foxtools: LoadImageList": "Foxtools: LoadImageList",
     "Foxtools: SaveImagePlus": "Foxtools: SaveImagePlus",
-    "Foxtools: ColorMatch": "Foxtools: ColorMatch"
+    "Foxtools: ColorMatch": "Foxtools: ColorMatch",
+    "FoxLoadImageBatch": "Foxtools: Load Image Batch",
 }
 

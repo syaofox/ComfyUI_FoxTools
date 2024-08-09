@@ -83,3 +83,11 @@ def sam2tensor(image):
     # Convert the numpy array to a tensor
     tensor_image = torch.from_numpy(chw_image)
     return tensor_image
+
+# SHA-256 Hash
+def get_sha256(file_path):
+    sha256_hash = hashlib.sha256()
+    with open(file_path, 'rb') as file:
+        for chunk in iter(lambda: file.read(4096), b''):
+            sha256_hash.update(chunk)
+    return sha256_hash.hexdigest()
